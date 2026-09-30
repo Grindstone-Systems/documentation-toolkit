@@ -18,7 +18,7 @@ export interface HtmlOptions {
   search?: boolean;
 }
 
-const THEME_TOKENS = {
+export const THEME_TOKENS = {
   graphite: { ink: "#1d2126", muted: "#5a616b", line: "#d9dce1", tint: "#f4f5f7", paper: "#ffffff", cover: "#1d2126", onCover: "#f6f6f4" },
   harbor: { ink: "#132a3e", muted: "#4d6378", line: "#cfdce7", tint: "#eef4f9", paper: "#ffffff", cover: "#132a3e", onCover: "#f2f7fb" },
   mono: { ink: "#111111", muted: "#555555", line: "#cccccc", tint: "#f2f2f2", paper: "#ffffff", cover: "#ffffff", onCover: "#111111" },

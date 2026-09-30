@@ -1,127 +1,109 @@
 import { PACKS } from "../../../lib/document/model.ts";
-import { GROUPS, hrefOf, type PageId } from "../shell/tools.ts";
-import { StatusPill } from "../ui/controls.tsx";
+import { CONFIG } from "../config.ts";
+import type { PageId } from "../shell/tools.ts";
 import { Icon } from "../ui/icons.tsx";
+import { OpenPanel } from "../workspace/OpenPanel.tsx";
+import type { WorkspaceApi } from "../workspace/useWorkspace.ts";
+
+const REPO = `https://github.com/${CONFIG.repo}`;
 
 const STEPS = [
-  ["Open", "Drop a gateway backup, project export or tag export. It's read on this device."],
-  ["Inspect", "See what was found, what was read, and what couldn't be, with every source file."],
-  ["Preview", "A linked engineering reference builds as you watch: screens, data, alarms, scripts."],
-  ["Personalize", "Pick a pack, add the customer's name, logo and screenshots, choose sections and what to redact."],
-  ["Export", "Offline HTML, editable Word, print-ready PDF, CSV inventories, or a workspace for your AI assistant."],
+  ["Open", "Drop a gateway backup, project export or tag export. It's read in this browser tab."],
+  ["Review", "Pick a pack, check each section against its source, add the customer's details and screenshots."],
+  ["Export", "Offline HTML, editable Word, PDF, CSV inventories, or a workspace for your AI assistant."],
 ] as const;
 
-export function Overview({ navigate, openSample }: { navigate: (id: PageId) => void; openSample: () => void }) {
-  const tools = GROUPS.flatMap((g) => g.pages.map((p) => ({ ...p, group: g.label })));
+export function Overview({ ws, navigate }: { ws: WorkspaceApi; navigate: (id: PageId) => void }) {
+  const current = ws.document?.title;
+  const toWorkspace = () => navigate("docs.workspace");
+
   return (
-    <div className="page overview">
-      <section className="hero">
-        <p className="eyebrow">Open Industrial Collective · Grindstone Systems</p>
-        <p className="experimental-note">
-          <b>Experimental · testing phase.</b> It works, it's private, and it's still being proven on real projects. Check generated documents against the source before
-          you rely on them, and tell us what it gets wrong.
-        </p>
-        <h1>Turn an Ignition backup into an engineering reference</h1>
-        <p className="lede">
-          Get a searchable reference and an editable manual pack, with every fact traced to the file it came from. Processing happens in your browser. Your own AI
-          assistant can fill in the rest.
-        </p>
-        <div className="hero-actions">
-          <button className="primary" onClick={() => navigate("docs.workspace")}>
-            Open backup or project <Icon name="arrow" />
-          </button>
-          <button className="secondary" onClick={openSample}>
-            <Icon name="sample" /> Explore the sample
-          </button>
+    <div className="home">
+      <section className="home-hero">
+        <div className="home-copy">
+          <p className="eyebrow">For Ignition integrators</p>
+          <h1>
+            Turn an Ignition backup into documentation <span>you can hand over.</span>
+          </h1>
+          <p className="lede">
+            A linked engineering reference and editable manual pack, built from the configuration itself. Every fact is traced to the file it came from, and nothing
+            leaves your device.
+          </p>
+          <ul className="home-points">
+            <li>
+              <Icon name="shield" size={15} /> Private. Processed in your browser.
+            </li>
+            <li>
+              <Icon name="check" size={15} /> Honest. Gaps are marked, never invented.
+            </li>
+            <li>
+              <Icon name="download" size={15} /> Portable. HTML, Word, PDF and CSV.
+            </li>
+          </ul>
+          {current && (
+            <button className="resume" onClick={toWorkspace}>
+              <span>
+                <small>Continue where you left off</small>
+                <b>{current}</b>
+              </span>
+              <Icon name="arrow" />
+            </button>
+          )}
         </div>
-        <dl className="facts">
-          <div>
-            <dt>0</dt>
-            <dd>files uploaded</dd>
-          </div>
-          <div>
-            <dt>{PACKS.length}</dt>
-            <dd>document packs</dd>
-          </div>
-          <div>
-            <dt>HTML · Word · PDF</dt>
-            <dd>plus CSV and an agent workspace</dd>
-          </div>
-          <div>
-            <dt>$0</dt>
-            <dd>no account, no paid AI</dd>
-          </div>
-        </dl>
+        <OpenPanel ws={ws} onStart={toWorkspace} />
       </section>
 
-      <section className="block">
-        <h2 className="block-title">How it works</h2>
-        <ol className="steps">
+      <section className="home-band">
+        <ol className="flow">
           {STEPS.map(([t, d], i) => (
             <li key={t}>
-              <b>{i + 1}</b>
+              <span className="flow-n">{i + 1}</span>
               <strong>{t}</strong>
-              <span>{d}</span>
+              <p>{d}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="block">
-        <h2 className="block-title">Packs</h2>
-        <div className="tool-grid">
+      <section className="home-band">
+        <h2 className="band-title">Four packs from one backup</h2>
+        <div className="pack-grid">
           {PACKS.map((p) => (
-            <div key={p.id} className="tool-card tool-card--ready static">
-              <span className="tool-meta">{p.framework ? "Framework" : "Reference"}</span>
+            <div key={p.id} className="pack-card">
+              <span className={`pack-kind${p.framework ? " fw" : ""}`}>{p.framework ? "Framework" : "Reference"}</span>
               <strong>{p.label}</strong>
-              <span className="tool-summary">{p.summary}</span>
+              <p>{p.summary}</p>
             </div>
           ))}
         </div>
-        <p className="hint spaced">
-          Frameworks mark what only the site can supply (operating steps, alarm responses, safety information) as <b>Unresolved</b>. The toolkit and AI assistants don't invent
-          them.
+        <p className="band-note">
+          Frameworks leave what only the site knows, such as operating steps, alarm responses and safety information, marked <b>Unresolved</b> for a person to supply.
         </p>
       </section>
 
-      <section className="block">
-        <h2 className="block-title">Tools</h2>
-        <div className="tool-grid">
-          {tools.map((t) => (
-            <a
-              key={t.id}
-              className={`tool-card tool-card--${t.status}`}
-              href={hrefOf(t.id)}
-              onClick={(e) => {
-                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-                e.preventDefault();
-                navigate(t.id);
-              }}
-            >
-              <span className="tool-icon">
-                <Icon name={t.icon} size={18} />
-              </span>
-              <span className="tool-meta">
-                {t.group}
-                <StatusPill status={t.status} />
-              </span>
-              <strong>{t.label}</strong>
-              <span className="tool-summary">{t.summary}</span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      <section className="block principles">
-        <h2 className="block-title">Principles</h2>
-        <ul className="checklist">
-          <li>Useful before AI: the basic pack needs no model, account or install.</li>
-          <li>Private by default: backups never leave the device, and credentials are never read.</li>
-          <li>Explicit about coverage: anything not read is counted and shown.</li>
-          <li>Honest states: Extracted, AI draft, Confirmed and Unresolved are marked on every section.</li>
-          <li>Portable after export: HTML, Markdown, JSON and CSV that any tool can open.</li>
-        </ul>
-      </section>
+      <footer className="home-foot">
+        <p>
+          <span className="beta">Experimental</span> Still being proven on real projects. Check generated documents against the source before you rely on them.
+        </p>
+        <nav aria-label="Resources">
+          <a href="#/agents" onClick={(e) => (e.preventDefault(), navigate("extend.agents"))}>
+            AI agents
+          </a>
+          <a href="#/platforms" onClick={(e) => (e.preventDefault(), navigate("extend.platforms"))}>
+            More platforms
+          </a>
+          <a href={`${REPO}/blob/main/docs/ROADMAP.md`} target="_blank" rel="noopener">
+            Roadmap
+          </a>
+          <a href={`${REPO}/blob/main/docs/PRIVACY.md`} target="_blank" rel="noopener">
+            Privacy
+          </a>
+          <a href={REPO} target="_blank" rel="noopener">
+            Source
+          </a>
+        </nav>
+        <p className="byline">Grindstone Systems · Open Industrial Collective. Not affiliated with or endorsed by Inductive Automation.</p>
+      </footer>
     </div>
   );
 }

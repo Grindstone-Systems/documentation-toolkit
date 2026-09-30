@@ -52,7 +52,7 @@ export function AgentsPage() {
         <section className="panel-card">
           <h2 className="block-title">1 · Save a workspace</h2>
           <p>
-            In the Workspace, choose <b>Save workspace</b> and unzip it. The folder holds the evidence, one Markdown file per section, and an <code>AGENTS.md</code> with the rules
+            In the Workspace, choose <b>Export</b>, then <b>Agent workspace</b>, and unzip it. The folder holds the evidence, one Markdown file per section, and an <code>AGENTS.md</code> with the rules
             the assistant follows. Assistants that read <code>AGENTS.md</code> or <code>CLAUDE.md</code> need nothing else.
           </p>
           <h2 className="block-title">2 · Optional: add the local tools</h2>

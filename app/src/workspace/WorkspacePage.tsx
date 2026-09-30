@@ -1,292 +1,43 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ADAPTERS } from "../../../lib/extract.ts";
+import { slug } from "../../../lib/render/escape.ts";
 import { renderHtml } from "../../../lib/render/html.ts";
 import { unresolved } from "../../../lib/resolve.ts";
 import { dataUris } from "../../../lib/workspace.ts";
-import { Segmented } from "../ui/controls.tsx";
+import { Popover, Segmented } from "../ui/controls.tsx";
 import { Icon } from "../ui/icons.tsx";
+import { Coverage } from "./Coverage.tsx";
+import { CustomizePanel } from "./CustomizePanel.tsx";
 import { EvidenceExplorer } from "./EvidenceExplorer.tsx";
-import { ExportPanel } from "./ExportPanel.tsx";
-import { PersonalizePanel } from "./PersonalizePanel.tsx";
-import { loadSample } from "./sample.ts";
-import type { SessionApi } from "./session.ts";
-import { useExtractor } from "./useExtractor.ts";
+import { ExportDialog } from "./ExportDialog.tsx";
+import { OpenPanel } from "./OpenPanel.tsx";
+import { Outline } from "./Outline.tsx";
+import { ACCEPT, type WorkspaceApi } from "./useWorkspace.ts";
 
 type Tab = "document" | "evidence" | "coverage";
 
-const ACCEPT = ".gwbk,.zip,.json";
 const fmtBytes = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const fmtMs = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
+const wide = (px: number) => typeof matchMedia === "function" && matchMedia(`(min-width: ${px}px)`).matches;
 
-export function WorkspacePage({ api, notify, openSample }: { api: SessionApi; notify: (m: string) => void; openSample: boolean }) {
-  const { session, setSession, document: doc, openWorkspace } = api;
-  const [tab, setTab] = useState<Tab>("document");
-  const [dragging, setDragging] = useState(false);
-  const pick = useRef<HTMLInputElement>(null);
-  const pickWorkspace = useRef<HTMLInputElement>(null);
-  const frame = useRef<HTMLIFrameElement>(null);
-  const [focus, setFocus] = useState<string | undefined>();
-
-  const extractor = useExtractor(
-    (evidence) => setSession((s) => ({ ...s, evidence })),
-    (ws) => {
-      openWorkspace(ws);
-      notify("Workspace reopened. Your edits are kept.");
-    },
-  );
-
-  const runFiles = useCallback(
-    async (files: File[], sample: boolean) => {
-      const texts = sample ? await loadSample() : undefined;
-      setSession((s) => ({ ...s, files, sample }));
-      extractor.run({
-        type: "extract",
-        files,
-        texts: texts
-          ? [
-              { name: "Riverbend", files: texts.project },
-              { name: "riverbend-tags.json", files: texts.tags },
-            ]
-          : undefined,
-      });
-    },
-    [extractor, setSession],
-  );
-
-  const addFiles = useCallback(
-    (list: FileList | File[]) => {
-      const incoming = [...list];
-      const ws = incoming.find((f) => /workspace.*\.zip$|\.oicdocs\.zip$/i.test(f.name));
-      if (ws && incoming.length === 1) {
-        extractor.run({ type: "open-workspace", file: ws });
-        return;
-      }
-      const names = new Set(incoming.map((f) => f.name));
-      void runFiles([...session.files.filter((f) => !names.has(f.name)), ...incoming], session.sample);
-    },
-    [extractor, runFiles, session.files, session.sample],
-  );
-
-  // #/workspace/sample opens the sample once.
-  const sampled = useRef(false);
+/** Re-render when the viewport crosses a breakpoint; the side panels float below it. */
+function useWide(px: number) {
+  const [v, setV] = useState(() => wide(px));
   useEffect(() => {
-    if (openSample && !sampled.current && !session.evidence) {
-      sampled.current = true;
-      void runFiles([], true);
-    }
-  }, [openSample, runFiles, session.evidence]);
-
-  const assets = useMemo(() => dataUris(session.assets), [session.assets]);
-  const deferredDoc = useDeferredValue(doc);
-  const deferredConfig = useDeferredValue(session.config);
-  const html = useMemo(() => (deferredDoc ? renderHtml(deferredDoc, deferredConfig, { assets, search: false }) : ""), [deferredDoc, deferredConfig, assets]);
-
-  // The preview reloads whenever the document changes; keep the reader's place.
-  const scrollY = useRef(0);
-  const jumpTo = useRef<string | undefined>(undefined);
-  const jump = (id: string) => {
-    const w = frame.current?.contentWindow;
-    const el = frame.current?.contentDocument?.getElementById(`s-${id}`);
-    if (!w || !el) return false;
-    // Scroll only the preview, never the app around it.
-    w.scrollTo({ top: el.getBoundingClientRect().top + w.scrollY - 8, behavior: "instant" });
-    el.animate?.([{ background: "color-mix(in srgb, #4a9fd0 18%, transparent)" }, { background: "transparent" }], { duration: 1400 });
-    return true;
-  };
-  const onFrameLoad = () => {
-    const w = frame.current?.contentWindow;
-    if (!w) return;
-    if (jumpTo.current && jump(jumpTo.current)) jumpTo.current = undefined;
-    else w.scrollTo(0, scrollY.current);
-    w.addEventListener("scroll", () => (scrollY.current = w.scrollY), { passive: true });
-  };
-  // Jump after the preview is visible again; if it's still loading, onFrameLoad finishes the job.
-  const [jumpTick, setJumpTick] = useState(0);
-  const showSection = useCallback((id: string) => {
-    jumpTo.current = id;
-    setTab("document");
-    setJumpTick((n) => n + 1);
-  }, []);
-  useEffect(() => {
-    if (tab === "document" && jumpTo.current && jump(jumpTo.current)) jumpTo.current = undefined;
-  }, [tab, jumpTick]);
-
-  const empty = !session.evidence && extractor.state.phase !== "working";
-  const ev = session.evidence;
-
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
-  };
-
-  const hidden = (
-    <>
-      <input ref={pick} type="file" accept={ACCEPT} multiple hidden onChange={(e) => (e.target.files && addFiles(e.target.files), (e.target.value = ""))} />
-      <input ref={pickWorkspace} type="file" accept=".zip" hidden onChange={(e) => (e.target.files?.[0] && extractor.run({ type: "open-workspace", file: e.target.files[0] }), (e.target.value = ""))} />
-    </>
-  );
-
-  if (empty) {
-    return (
-      <div className={`page open-page${dragging ? " dragging" : ""}`} onDragOver={(e) => (e.preventDefault(), setDragging(true))} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
-        {hidden}
-        <div className="dropzone">
-          <span className="drop-icon">
-            <Icon name="upload" size={22} />
-          </span>
-          <h1>Open a backup or project</h1>
-          <p className="lede">Drop an Ignition gateway backup (.gwbk), a project export (.zip) or a tag export (.json). You can add several.</p>
-          <div className="hero-actions center">
-            <button className="primary" onClick={() => pick.current?.click()}>
-              <Icon name="folder" /> Choose files
-            </button>
-            <button className="secondary" onClick={() => void runFiles([], true)}>
-              <Icon name="sample" /> Explore the sample
-            </button>
-            <button className="secondary" onClick={() => pickWorkspace.current?.click()}>
-              Reopen a workspace
-            </button>
-          </div>
-          <p className="privacy">
-            <Icon name="shield" size={14} /> Files are processed on this device. Nothing is uploaded, and nothing is kept after you close the tab.
-          </p>
-          <p className="hint">Experimental: check generated documents against the source before relying on them.</p>
-          {extractor.state.phase === "error" && <p className="error-note">{extractor.state.message}</p>}
-        </div>
-        <SupportTable />
-      </div>
-    );
-  }
-
-  const gaps = ev ? unresolved(ev).length : 0;
-  const notRead = ev ? ev.coverage.filter((c) => c.read < c.found) : [];
-
-  return (
-    <div className="workspace" onDragOver={(e) => (e.preventDefault(), setDragging(true))} onDragLeave={(e) => e.currentTarget === e.target && setDragging(false)} onDrop={onDrop}>
-      {hidden}
-      <aside className="panel left">
-        <section className="section">
-          <h2>
-            <b>1</b> Inputs
-          </h2>
-          <ul className="inputs">
-            {ev?.inputs.map((i) => (
-              <li key={i.name}>
-                <Icon name={i.format === "unknown" ? "close" : "check"} size={14} className={i.format === "unknown" ? "bad" : "good"} />
-                <span className="input-name" title={i.name}>
-                  {i.name}
-                </span>
-                <span className="input-meta">
-                  {ADAPTERS[i.format].label}
-                  {i.platformVersion ? ` · ${i.platformVersion}` : ""}
-                  {i.size ? ` · ${fmtBytes(i.size)}` : ""}
-                </span>
-              </li>
-            ))}
-            {!ev && session.previous && <li className="muted">Reopened workspace</li>}
-          </ul>
-          <div className="grid2">
-            <button onClick={() => pick.current?.click()}>
-              <Icon name="upload" size={14} /> Add files
-            </button>
-            <button onClick={() => (api.reset(), extractor.cancel())}>Start over</button>
-          </div>
-          <p className="hint">
-            <Icon name="shield" size={12} /> Processed on this device.
-          </p>
-        </section>
-
-        <section className="section">
-          <h2>
-            <b>2</b> Inspect
-            {extractor.state.phase === "done" && extractor.state.ms > 0 && <span className="aside">{extractor.state.ms < 1000 ? `${extractor.state.ms} ms` : `${(extractor.state.ms / 1000).toFixed(1)} s`}</span>}
-          </h2>
-          {extractor.state.phase === "working" && (
-            <ul className="progress">
-              {extractor.state.log.map((p, i) => (
-                <li key={i}>{p.message}</li>
-              ))}
-              <li className="spin">Working…</li>
-            </ul>
-          )}
-          {extractor.state.phase === "error" && <p className="error-note">{extractor.state.message}</p>}
-          {ev && (
-            <>
-              <dl className="counts">
-                {COUNTS.map(([one, many, kinds]) => {
-                  const n = ev.entities.filter((e) => kinds.includes(e.kind)).length;
-                  return n ? (
-                    <div key={many}>
-                      <dt>{n.toLocaleString()}</dt>
-                      <dd>{n === 1 ? one : many}</dd>
-                    </div>
-                  ) : null;
-                })}
-              </dl>
-              {(notRead.length > 0 || gaps > 0) && (
-                <button className="link-row" onClick={() => setTab("coverage")}>
-                  {notRead.length > 0 && <span>{notRead.length} resource type{notRead.length > 1 ? "s" : ""} not fully read</span>}
-                  {gaps > 0 && <span>{gaps} unresolved reference{gaps > 1 ? "s" : ""}</span>}
-                  <Icon name="chevron" size={12} />
-                </button>
-              )}
-              {ev.diagnostics
-                .filter((d) => d.level === "error")
-                .map((d, i) => (
-                  <p key={i} className="error-note">
-                    {d.message}
-                  </p>
-                ))}
-            </>
-          )}
-        </section>
-      </aside>
-
-      <main className={`stage${dragging ? " dragging" : ""}`}>
-        <div className="stage-tools">
-          <Segmented<Tab>
-            value={tab}
-            onChange={setTab}
-            options={[
-              { value: "document", label: "Document" },
-              { value: "evidence", label: "Evidence" },
-              { value: "coverage", label: "Coverage" },
-            ]}
-          />
-          {doc && (
-            <span className="doc-status">
-              {(["extracted", "ai-draft", "confirmed", "unresolved"] as const).map((st) => {
-                const n = doc.sections.filter((s) => s.status === st).length;
-                return n ? (
-                  <span key={st} className={`chip-status st-${st}`}>
-                    {n} {st === "ai-draft" ? "AI draft" : st}
-                  </span>
-                ) : null;
-              })}
-            </span>
-          )}
-        </div>
-        {html ? (
-          <iframe ref={frame} className="preview" hidden={tab !== "document"} title="Document preview" sandbox="allow-same-origin allow-modals" srcDoc={html} onLoad={onFrameLoad} />
-        ) : (
-          tab === "document" && <div className="stage-empty">Reading…</div>
-        )}
-        {tab === "evidence" && ev && doc && <EvidenceExplorer evidence={ev} document={doc} focus={focus} setFocus={setFocus} showSection={showSection} />}
-        {tab === "coverage" && ev && <Coverage evidence={ev} />}
-        {dragging && <div className="drop-hint">Drop to add files</div>}
-      </main>
-
-      <aside className="panel right">
-        {ev && doc && (
-          <>
-            <PersonalizePanel api={api} notify={notify} />
-            <ExportPanel api={api} document={doc} frame={frame} notify={notify} />
-          </>
-        )}
-      </aside>
-    </div>
-  );
+    const m = matchMedia(`(min-width: ${px}px)`);
+    const on = () => setV(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, [px]);
+  return v;
 }
+
+/**
+ * The in-app preview hides the document's own contents list (the outline
+ * replaces it) and keeps the text at a readable width. Print is unaffected:
+ * the exported file and the printed PDF are unchanged.
+ */
+const PREVIEW_CSS = "<style>@media screen{.layout>.toc{display:none}.layout{display:block;max-width:none}main{max-width:900px;margin:0 auto}}</style>";
 
 const COUNTS: [string, string, string[]][] = [
   ["project", "projects", ["project"]],
@@ -300,108 +51,321 @@ const COUNTS: [string, string, string[]][] = [
   ["connection", "connections", ["opc-connection", "database-connection", "device"]],
 ];
 
-function Coverage({ evidence }: { evidence: NonNullable<SessionApi["session"]["evidence"]> }) {
-  const gaps = unresolved(evidence);
-  return (
-    <div className="stage-scroll">
-      <h2 className="block-title">Found and read</h2>
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Resource type</th>
-              <th className="num">Found</th>
-              <th className="num">Read</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {evidence.coverage.map((c) => (
-              <tr key={c.key} className={c.read < c.found ? "partial" : ""}>
-                <td>{c.label}</td>
-                <td className="num">{c.found.toLocaleString()}</td>
-                <td className="num">{c.read.toLocaleString()}</td>
-                <td className="muted">{c.note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+export function WorkspacePage({
+  ws,
+  notify,
+  openSample,
+  exportOpen,
+  setExportOpen,
+}: {
+  ws: WorkspaceApi;
+  notify: (m: string) => void;
+  openSample: boolean;
+  exportOpen: boolean;
+  setExportOpen: (open: boolean) => void;
+}) {
+  const { session, document: doc, extractor } = ws;
+  const [tab, setTab] = useState<Tab>("document");
+  const [showOutline, setShowOutline] = useState(() => wide(820));
+  const [showCustomize, setShowCustomize] = useState(() => wide(1180));
+  const roomForOutline = useWide(820);
+  const roomForCustomize = useWide(1180);
+  const [dragging, setDragging] = useState(false);
+  const [active, setActive] = useState<string>();
+  const [focus, setFocus] = useState<string | undefined>();
+  const pick = useRef<HTMLInputElement>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+
+  // #/workspace/sample opens the sample once.
+  const sampled = useRef(false);
+  useEffect(() => {
+    if (openSample && !sampled.current && !session.evidence) {
+      sampled.current = true;
+      ws.openSample();
+    }
+  }, [openSample, ws, session.evidence]);
+
+  const assets = useMemo(() => dataUris(session.assets), [session.assets]);
+  const deferredDoc = useDeferredValue(doc);
+  const deferredConfig = useDeferredValue(session.config);
+  const html = useMemo(
+    () => (deferredDoc ? renderHtml(deferredDoc, deferredConfig, { assets, search: false }).replace("</head>", `${PREVIEW_CSS}</head>`) : ""),
+    [deferredDoc, deferredConfig, assets],
+  );
+
+  // Section anchors in the preview, mapped back to section ids for the outline.
+  const bySid = useRef(new Map<string, string>());
+  bySid.current = new Map((doc?.sections ?? []).map((s) => [`s-${slug(s.id)}`, s.id]));
+
+  // The preview reloads whenever the document changes; keep the reader's place.
+  const scrollY = useRef(0);
+  const jumpTo = useRef<string | undefined>(undefined);
+  const jump = (id: string) => {
+    const w = frame.current?.contentWindow;
+    const el = frame.current?.contentDocument?.getElementById(`s-${slug(id)}`);
+    if (!w || !el) return false;
+    // Scroll only the preview, never the app around it.
+    w.scrollTo({ top: el.getBoundingClientRect().top + w.scrollY - 12, behavior: "instant" });
+    el.animate?.([{ background: "color-mix(in srgb, #4a9fd0 16%, transparent)" }, { background: "transparent" }], { duration: 1400 });
+    setActive(id);
+    return true;
+  };
+  const onFrameLoad = () => {
+    const w = frame.current?.contentWindow;
+    const d = frame.current?.contentDocument;
+    if (!w || !d) return;
+    if (jumpTo.current && jump(jumpTo.current)) jumpTo.current = undefined;
+    else w.scrollTo(0, scrollY.current);
+    const sections = [...d.querySelectorAll<HTMLElement>("section.sec[id]")];
+    let raf = 0;
+    const spy = () => {
+      raf = 0;
+      let current: string | undefined;
+      for (const s of sections) {
+        if (s.getBoundingClientRect().top > 140) break;
+        current = s.id;
+      }
+      setActive(current ? bySid.current.get(current) : undefined);
+    };
+    w.addEventListener(
+      "scroll",
+      () => {
+        scrollY.current = w.scrollY;
+        if (!raf) raf = w.requestAnimationFrame(spy);
+      },
+      { passive: true },
+    );
+    spy();
+  };
+  // Jump after the preview is visible again; if it's still loading, onFrameLoad finishes the job.
+  const [jumpTick, setJumpTick] = useState(0);
+  const showSection = useCallback((id: string) => {
+    jumpTo.current = id;
+    setTab("document");
+    setJumpTick((n) => n + 1);
+    if (!wide(820)) setShowOutline(false);
+  }, []);
+  // Panels that would float over the preview close when the window narrows.
+  useEffect(() => void (!roomForOutline && setShowOutline(false)), [roomForOutline]);
+  useEffect(() => void (!roomForCustomize && setShowCustomize(false)), [roomForCustomize]);
+  useEffect(() => {
+    if (tab === "document" && jumpTo.current && jump(jumpTo.current)) jumpTo.current = undefined;
+  }, [tab, jumpTick]);
+
+  const working = extractor.state.phase === "working";
+  const ev = session.evidence;
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) ws.addFiles(e.dataTransfer.files);
+  };
+  const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes("Files");
+
+  /* ---------- nothing open yet ---------- */
+  if (!ev && !working) {
+    return (
+      <div className="ws-empty" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+        <div className="ws-empty-inner">
+          <h1>Open a backup or project</h1>
+          <p className="lede">Your files are read in this tab and never uploaded. Nothing is kept after you close it.</p>
+          <OpenPanel ws={ws} />
+        </div>
       </div>
-      {evidence.diagnostics.length > 0 && (
-        <>
-          <h2 className="block-title">Diagnostics</h2>
-          <ul className="diag">
-            {evidence.diagnostics.slice(0, 200).map((d, i) => (
-              <li key={i} className={d.level}>
-                <b>{d.level}</b> {d.message}
-                {d.source?.path && <code>{d.source.path}</code>}
-              </li>
+    );
+  }
+
+  /* ---------- first read in progress ---------- */
+  if (!ev || !doc) {
+    const log = extractor.state.phase === "working" ? extractor.state.log : [];
+    return (
+      <div className="ws-empty">
+        <div className="reading" role="status" aria-live="polite">
+          <span className="spinner lg" aria-hidden="true" />
+          <h1>Reading your files</h1>
+          <ul className="progress">
+            {log.slice(-4).map((p, i) => (
+              <li key={i}>{p.message}</li>
             ))}
           </ul>
-        </>
-      )}
-      <h2 className="block-title">Unresolved references ({gaps.length})</h2>
-      {gaps.length ? (
-        <ul className="diag">
-          {gaps.slice(0, 200).map((r, i) => (
-            <li key={i}>
-              <code>{r.target}</code> {r.type.replace(/-/g, " ")} from <code>{r.from}</code>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted">Every static reference resolved.</p>
-      )}
-    </div>
-  );
-}
-
-function SupportTable() {
-  return (
-    <section className="block support">
-      <h2 className="block-title">What it reads today</h2>
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Input</th>
-              <th>What gets documented</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Project export (.zip), Ignition 8.x</td>
-              <td>Perspective pages, views and bindings, project scripts, named queries, gateway event scripts. Vision, reports and other modules are listed by name.</td>
-              <td>
-                <span className="pill pill--preview">Preview</span>
-              </td>
-            </tr>
-            <tr>
-              <td>Tag export (.json)</td>
-              <td>Folders, tags, UDT definitions and instances, alarms. UDT members are expanded with parameters substituted.</td>
-              <td>
-                <span className="pill pill--preview">Preview</span>
-              </td>
-            </tr>
-            <tr>
-              <td>Gateway backup (.gwbk), Ignition 8.3</td>
-              <td>All projects, plus tags, tag providers, OPC and database connections, user sources and other gateway settings. Credentials are never read.</td>
-              <td>
-                <span className="pill pill--preview">Preview</span>
-              </td>
-            </tr>
-            <tr>
-              <td>Gateway backup (.gwbk), Ignition 8.1</td>
-              <td>All projects. Gateway configuration lives in an internal database that isn't decoded yet, so add a tag export.</td>
-              <td>
-                <span className="pill">Projects only</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <button className="button" onClick={ws.reset}>
+            Cancel
+          </button>
+        </div>
       </div>
-      <p className="hint">Tested against synthetic fixtures and a small number of real 8.1 and 8.3 backups. Unsupported content is counted and shown, never silently dropped.</p>
-    </section>
+    );
+  }
+
+  /* ---------- the workspace ---------- */
+  const gaps = unresolved(ev).length;
+  const notRead = ev.coverage.filter((c) => c.read < c.found);
+  const issues = gaps + notRead.length;
+  const counts = COUNTS.map(([one, many, kinds]) => {
+    const n = ev.entities.filter((e) => kinds.includes(e.kind)).length;
+    return { n, label: n === 1 ? one : many };
+  }).filter((c) => c.n);
+  const needsSite = doc.sections.filter((s) => s.status === "unresolved").length;
+  const docTab = tab === "document";
+  const overlayOpen = docTab && ((showOutline && !roomForOutline) || (showCustomize && !roomForCustomize));
+
+  return (
+    <div
+      className={`ws${docTab && showOutline ? " with-outline" : ""}${docTab && showCustomize ? " with-customize" : ""}`}
+      data-summary={counts.map((c) => `${c.n} ${c.label}`).join(", ")}
+      onDragEnter={(e) => hasFiles(e) && setDragging(true)}
+    >
+      <input ref={pick} type="file" accept={ACCEPT} multiple hidden onChange={(e) => (e.target.files && ws.addFiles(e.target.files), (e.target.value = ""))} />
+
+      <div className="ws-bar">
+        <div className="ws-bar-start">
+          {docTab && (
+            <button
+              className={`icon-btn${showOutline ? " pressed" : ""}`}
+              onClick={() => setShowOutline((v) => !v)}
+              aria-pressed={showOutline}
+              aria-label="Show sections"
+              title={showOutline ? "Hide sections" : "Show sections"}
+            >
+              <Icon name="sidebar" />
+            </button>
+          )}
+          <Popover
+            className="source"
+            label="Source files"
+            trigger={
+              <>
+                <span className="src-icon">{working ? <span className="spinner" aria-hidden="true" /> : <Icon name="file" size={15} />}</span>
+                <span className="src-text">
+                  <b>{doc.title}</b>
+                  <small>{working ? "Reading…" : `${ev.inputs.length} file${ev.inputs.length === 1 ? "" : "s"}${session.sample ? " · sample" : ""}`}</small>
+                </span>
+                <Icon name="caret" size={14} />
+              </>
+            }
+          >
+            {(close) => (
+              <div className="source-menu">
+                <p className="menu-title">Source files</p>
+                <ul className="inputs">
+                  {ev.inputs.map((i) => (
+                    <li key={i.name}>
+                      <Icon name={i.format === "unknown" ? "close" : "check"} size={14} className={i.format === "unknown" ? "bad" : "good"} />
+                      <span className="input-name" title={i.name}>
+                        {i.name}
+                      </span>
+                      <span className="input-meta">
+                        {ADAPTERS[i.format].label}
+                        {i.platformVersion ? ` · ${i.platformVersion}` : ""}
+                        {i.size ? ` · ${fmtBytes(i.size)}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <dl className="counts">
+                  {counts.map((c) => (
+                    <div key={c.label}>
+                      <dt>{c.n.toLocaleString()}</dt>
+                      <dd>{c.label}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {extractor.state.phase === "done" && extractor.state.ms > 0 && (
+                  <p className="hint">
+                    <Icon name="shield" size={12} /> Read on this device in {fmtMs(extractor.state.ms)}.
+                  </p>
+                )}
+                {issues > 0 && (
+                  <button className="menu-link warn" onClick={() => (setTab("coverage"), close())}>
+                    <Icon name="alert" size={14} />
+                    <span>
+                      {[notRead.length && `${notRead.length} resource type${notRead.length > 1 ? "s" : ""} not fully read`, gaps && `${gaps} unresolved reference${gaps > 1 ? "s" : ""}`]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                    <Icon name="chevron" size={12} />
+                  </button>
+                )}
+                <div className="menu-actions">
+                  <button className="button" onClick={() => (pick.current?.click(), close())}>
+                    <Icon name="plus" size={14} /> Add files
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => {
+                      if (confirm("Start over? Anything you've changed here is lost unless you saved a workspace.")) {
+                        close();
+                        ws.reset();
+                      }
+                    }}
+                  >
+                    <Icon name="restart" size={14} /> Start over
+                  </button>
+                </div>
+              </div>
+            )}
+          </Popover>
+        </div>
+
+        <Segmented<Tab>
+          label="View"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "document", label: "Document" },
+            { value: "evidence", label: "Evidence" },
+            { value: "coverage", label: "Coverage", badge: issues || undefined, title: issues ? `${issues} to look at` : undefined },
+          ]}
+        />
+
+        <div className="ws-bar-end">
+          {docTab && needsSite > 0 && (
+            <span className="needs" title="Sections that only the site can complete">
+              <i className="sdot st-unresolved" /> {needsSite} need{needsSite === 1 ? "s" : ""} the site
+            </span>
+          )}
+          {docTab && (
+            <button className={`button${showCustomize ? " pressed" : ""}`} onClick={() => setShowCustomize((v) => !v)} aria-pressed={showCustomize}>
+              <Icon name="sliders" size={15} />
+              <span className="lbl">Customize</span>
+            </button>
+          )}
+          <button className="button primary" onClick={() => setExportOpen(true)}>
+            <Icon name="download" size={15} />
+            <span className="lbl">Export</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="ws-body">
+        {docTab && showOutline && (
+          <aside className="ws-outline" aria-label="Pack and sections">
+            <Outline api={ws} document={doc} active={active} onJump={showSection} />
+          </aside>
+        )}
+        <main className="ws-stage">
+          <iframe ref={frame} className="preview" hidden={!docTab} title="Document preview" sandbox="allow-same-origin allow-modals" srcDoc={html} onLoad={onFrameLoad} />
+          {tab === "evidence" && <EvidenceExplorer evidence={ev} document={doc} focus={focus} setFocus={setFocus} showSection={showSection} />}
+          {tab === "coverage" && <Coverage evidence={ev} />}
+        </main>
+        {docTab && showCustomize && (
+          <aside className="ws-customize" aria-label="Customize">
+            <CustomizePanel api={ws} notify={notify} onClose={() => setShowCustomize(false)} />
+          </aside>
+        )}
+        {overlayOpen && <div className="ws-backdrop" onClick={() => (setShowOutline(false), setShowCustomize(false))} />}
+      </div>
+
+      {dragging && (
+        <div className="ws-drop" onDragOver={(e) => e.preventDefault()} onDragLeave={(e) => e.currentTarget === e.target && setDragging(false)} onDrop={onDrop}>
+          <div>
+            <Icon name="upload" size={22} />
+            <b>Drop to add to this workspace</b>
+            <span>Backups, project exports and tag exports</span>
+          </div>
+        </div>
+      )}
+
+      <ExportDialog api={ws} document={doc} frame={frame} notify={notify} open={exportOpen} onClose={() => setExportOpen(false)} />
+    </div>
   );
 }

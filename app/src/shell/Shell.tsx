@@ -1,31 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CONFIG } from "../config.ts";
 import { Icon, Mark, type IconName } from "../ui/icons.tsx";
-import { StatusPill } from "../ui/controls.tsx";
-import { GROUPS, OVERVIEW, groupOf, hrefOf, pageById, type PageId, type ToolPage } from "./tools.ts";
+import { NAV, hrefOf, type PageId } from "./tools.ts";
 
 const REPO = `https://github.com/${CONFIG.repo}`;
-const MOBILE = "(max-width: 860px)";
-
-/** Per-viewer UI conveniences; storage can be missing or blocked, so never rely on it. */
-function useStored<T>(key: string, initial: T) {
-  const [v, setV] = useState<T>(() => {
-    try {
-      const s = localStorage.getItem(key);
-      return s ? (JSON.parse(s) as T) : initial;
-    } catch {
-      return initial;
-    }
-  });
-  useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(v));
-    } catch {
-      /* private window */
-    }
-  }, [key, v]);
-  return [v, setV] as const;
-}
 
 export interface Command {
   id: string;
@@ -35,10 +13,9 @@ export interface Command {
   run: () => void;
 }
 
+/** One slim bar across the top; the active page fills the rest. */
 export function Shell({
   page,
-  crumb,
-  counts,
   scheme,
   onToggleTheme,
   navigate,
@@ -46,21 +23,13 @@ export function Shell({
   children,
 }: {
   page: PageId;
-  /** Extra breadcrumb after the page, e.g. the generator being edited. */
-  crumb?: string;
-  counts: Partial<Record<PageId, number>>;
   scheme: "light" | "dark";
   onToggleTheme: () => void;
   navigate: (id: PageId) => void;
   commands: Command[];
   children: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useStored("dt.nav.collapsed", false);
-  const [closedGroups, setClosedGroups] = useStored<string[]>("dt.nav.closed", []);
-  const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
-  const current = pageById(page);
-  const group = groupOf(page);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -73,36 +42,38 @@ export function Shell({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const go = (id: PageId) => {
-    setDrawer(false);
-    navigate(id);
-  };
-  const toggleNav = () => (window.matchMedia(MOBILE).matches ? setDrawer((d) => !d) : setCollapsed((c) => !c));
-  const toggleGroup = (id: string) => setClosedGroups((c) => (c.includes(id) ? c.filter((g) => g !== id) : [...c, id]));
+  const mac = navigator.platform.startsWith("Mac");
 
   return (
-    <div className={`shell${collapsed ? " nav-collapsed" : ""}${drawer ? " nav-open" : ""}`}>
+    <div className="shell">
       <header className="appbar">
-        <button className="icon-btn" onClick={toggleNav} aria-label="Toggle navigation" title="Toggle navigation">
-          <Icon name="sidebar" />
-        </button>
-        <a className="brand" href={hrefOf("overview")} onClick={(e) => (e.preventDefault(), go("overview"))}>
+        <a className="brand" href={hrefOf("overview")} onClick={(e) => (e.preventDefault(), navigate("overview"))}>
           <Mark />
           <span className="brand-name">Documentation Toolkit</span>
-          <span className="pill pill--experimental" title="Experimental: in its testing phase. Check generated documents against the source before relying on them.">
-            Experimental
-          </span>
         </a>
-        <nav className="crumbs" aria-label="Breadcrumb">
-          {group && <span>{group.label}</span>}
-          <span aria-current="page">{current.label}</span>
-          {crumb && <span className="crumb-extra">{crumb}</span>}
+        <span className="beta" title="Experimental: in its testing phase. Check generated documents against the source before relying on them.">
+          Experimental
+        </span>
+        <nav className="topnav" aria-label="Main">
+          {NAV.map((n) => (
+            <a
+              key={n.id}
+              href={hrefOf(n.id)}
+              className={page === n.id ? "on" : ""}
+              aria-current={page === n.id ? "page" : undefined}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                navigate(n.id);
+              }}
+            >
+              {n.label}
+            </a>
+          ))}
         </nav>
         <div className="appbar-end">
-          <button className="search-btn" onClick={() => setPalette(true)}>
+          <button className="icon-btn search-cmd" onClick={() => setPalette(true)} aria-label="Search commands" title={`Search commands (${mac ? "⌘" : "Ctrl"} K)`}>
             <Icon name="search" />
-            <span>Search tools…</span>
-            <kbd>{navigator.platform.startsWith("Mac") ? "⌘" : "Ctrl"} K</kbd>
           </button>
           <button className="icon-btn" onClick={onToggleTheme} aria-label={`Switch to ${scheme === "dark" ? "light" : "dark"} theme`} title="Light / dark">
             <Icon name={scheme === "dark" ? "sun" : "moon"} />
@@ -113,77 +84,10 @@ export function Shell({
         </div>
       </header>
 
-      <aside className="sidenav" aria-label="Tools">
-        <nav className="nav-scroll">
-          <NavLink page={OVERVIEW} active={page === "overview"} onGo={go} />
-          {GROUPS.map((g) => {
-            const open = !closedGroups.includes(g.id);
-            const inGroup = g.pages.some((p) => p.id === page);
-            return (
-              <div key={g.id} className={`nav-group${inGroup ? " has-active" : ""}`}>
-                <button
-                  className="nav-group-head"
-                  aria-expanded={open}
-                  onClick={() => (collapsed ? go(g.pages[0]!.id) : toggleGroup(g.id))}
-                  title={collapsed ? g.label : undefined}
-                >
-                  <Icon name={g.icon} />
-                  <span className="nav-label">{g.label}</span>
-                  <Icon name="chevron" size={12} className="nav-chevron" />
-                </button>
-                {open && (
-                  <div className="nav-children">
-                    {g.pages.map((p) => (
-                      <NavLink key={p.id} page={p} active={page === p.id} onGo={go} count={counts[p.id]} nested />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-        <div className="nav-foot">
-          <p className="nav-section">Resources</p>
-          <a className="nav-link" href={`${REPO}#readme`} target="_blank" rel="noopener" title="Documentation">
-            <Icon name="docs" />
-            <span className="nav-label">Documentation</span>
-            <Icon name="external" size={12} className="nav-ext" />
-          </a>
-          <a className="nav-link" href={`${REPO}/blob/main/docs/ROADMAP.md`} target="_blank" rel="noopener" title="Roadmap">
-            <Icon name="roadmap" />
-            <span className="nav-label">Roadmap</span>
-            <Icon name="external" size={12} className="nav-ext" />
-          </a>
-          <p className="byline">by Grindstone Systems · OIC</p>
-        </div>
-      </aside>
-      <div className="nav-backdrop" onClick={() => setDrawer(false)} />
-
       <main className="content">{children}</main>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
     </div>
-  );
-}
-
-function NavLink({ page, active, onGo, count, nested }: { page: ToolPage; active: boolean; onGo: (id: PageId) => void; count?: number; nested?: boolean }) {
-  return (
-    <a
-      className={`nav-link${active ? " on" : ""}${nested ? " nested" : ""}`}
-      href={hrefOf(page.id)}
-      aria-current={active ? "page" : undefined}
-      title={page.label}
-      onClick={(e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-        e.preventDefault();
-        onGo(page.id);
-      }}
-    >
-      {!nested && <Icon name={page.icon} />}
-      <span className="nav-label">{page.label}</span>
-      {count !== undefined && <span className="nav-count">{count}</span>}
-      <StatusPill status={page.status} />
-    </a>
   );
 }
 
@@ -210,12 +114,12 @@ function CommandPalette({ commands, onClose }: { commands: Command[]; onClose: (
 
   return (
     <div className="palette-backdrop" onMouseDown={onClose}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Search tools" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="palette" role="dialog" aria-modal="true" aria-label="Search commands" onMouseDown={(e) => e.stopPropagation()}>
         <label className="palette-input">
           <Icon name="search" />
           <input
             autoFocus
-            placeholder="Jump to a tool or action…"
+            placeholder="Jump to a page or action…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {

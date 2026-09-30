@@ -2,7 +2,7 @@ import type { IconName } from "../ui/icons.tsx";
 
 /**
  * The tool registry: every page the app knows about, grouped the way the
- * sidebar shows them. Adding a tool is one entry here plus a page in App.tsx.
+ * command palette groups them. Adding a tool is one entry here plus a page in App.tsx.
  * Statuses mirror docs/ROADMAP.md — don't mark something ready that isn't.
  */
 
@@ -86,6 +86,13 @@ export const GROUPS: ToolGroup[] = [
 ];
 
 export const ALL_PAGES: ToolPage[] = [OVERVIEW, ...GROUPS.flatMap((g) => g.pages)];
+
+/** The top bar's links. Planned tools are reachable from the home page and ⌘K. */
+export const NAV: { id: PageId; label: string }[] = [
+  { id: "overview", label: "Home" },
+  { id: "docs.workspace", label: "Workspace" },
+  { id: "extend.agents", label: "AI agents" },
+];
 
 export const pageById = (id: PageId) => ALL_PAGES.find((p) => p.id === id)!;
 export const groupOf = (id: PageId) => GROUPS.find((g) => g.pages.some((p) => p.id === id));

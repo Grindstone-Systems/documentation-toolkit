@@ -5,7 +5,7 @@ import { ToolStatusPage } from "./pages/ToolStatusPage.tsx";
 import { Shell, type Command } from "./shell/Shell.tsx";
 import { ALL_PAGES, groupOf, hrefOf, pageById, parseHash, type PageId, type Route } from "./shell/tools.ts";
 import { warmUp } from "./workspace/offline.ts";
-import { useSession } from "./workspace/session.ts";
+import { useWorkspace } from "./workspace/useWorkspace.ts";
 import { WorkspacePage } from "./workspace/WorkspacePage.tsx";
 
 type Scheme = "light" | "dark";
@@ -25,13 +25,14 @@ export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash());
   const [scheme, setScheme] = useState<Scheme>(initialScheme);
   const [toast, setToast] = useState<string | null>(null);
-  const api = useSession();
+  const [exportOpen, setExportOpen] = useState(false);
 
   const notify = useCallback((msg: string) => {
     setToast(msg);
     window.clearTimeout((notify as unknown as { t?: number }).t);
     (notify as unknown as { t?: number }).t = window.setTimeout(() => setToast(null), 3600);
   }, []);
+  const ws = useWorkspace(notify);
 
   // Fetch lazily loaded code early so the app keeps working if the network drops.
   useEffect(() => {
@@ -56,11 +57,11 @@ export function App() {
 
   // Work in progress lives only in memory, so warn before it's lost.
   useEffect(() => {
-    if (!api.session.evidence) return;
+    if (!ws.session.evidence) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [api.session.evidence]);
+  }, [ws.session.evidence]);
 
   const navigate = useCallback((page: PageId) => {
     setRoute({ page });
@@ -68,10 +69,11 @@ export function App() {
     history.pushState(null, "", hrefOf(page));
   }, []);
 
+  const startSample = ws.openSample;
   const openSample = useCallback(() => {
-    setRoute({ page: "docs.workspace", sample: true });
-    history.pushState(null, "", "#/workspace/sample");
-  }, []);
+    startSample();
+    navigate("docs.workspace");
+  }, [startSample, navigate]);
 
   const toggleTheme = useCallback(() => setScheme((s) => (s === "dark" ? "light" : "dark")), []);
   const page = pageById(route.page);
@@ -80,22 +82,25 @@ export function App() {
     document.title = route.page === "overview" ? "Documentation Toolkit" : `${page.label} · Documentation Toolkit`;
   }, [route.page, page.label]);
 
+  const hasDoc = !!ws.document;
   const commands = useMemo<Command[]>(
     () => [
       ...ALL_PAGES.map((p) => ({ id: `page:${p.id}`, label: p.label, hint: groupOf(p.id)?.label ?? "Go to", icon: p.icon, run: () => navigate(p.id) })),
-      { id: "sample", label: "Explore the sample project", hint: "Workspace", icon: "sample", run: openSample },
+      ...(hasDoc
+        ? [{ id: "export", label: "Export documents…", hint: "Workspace", icon: "download" as const, run: () => (navigate("docs.workspace"), setExportOpen(true)) }]
+        : [{ id: "sample", label: "Try the sample project", hint: "Workspace", icon: "sample" as const, run: openSample }]),
       { id: "theme", label: "Toggle light / dark theme", hint: "Appearance", icon: "sun", run: toggleTheme },
     ],
-    [navigate, openSample, toggleTheme],
+    [navigate, openSample, toggleTheme, hasDoc],
   );
 
   let content;
   switch (route.page) {
     case "overview":
-      content = <Overview navigate={navigate} openSample={openSample} />;
+      content = <Overview ws={ws} navigate={navigate} />;
       break;
     case "docs.workspace":
-      content = <WorkspacePage api={api} notify={notify} openSample={!!route.sample} />;
+      content = <WorkspacePage ws={ws} notify={notify} openSample={!!route.sample} exportOpen={exportOpen} setExportOpen={setExportOpen} />;
       break;
     case "extend.agents":
       content = <AgentsPage />;
@@ -107,8 +112,6 @@ export function App() {
   return (
     <Shell
       page={route.page}
-      crumb={route.page === "docs.workspace" ? api.document?.title : undefined}
-      counts={{}}
       scheme={scheme}
       onToggleTheme={toggleTheme}
       navigate={navigate}

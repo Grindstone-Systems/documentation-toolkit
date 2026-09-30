@@ -36,7 +36,7 @@ const step = (m: string) => console.log(`• ${m}`);
 
 async function clickText(page: Page, text: string) {
   const ok = await page.evaluate((t) => {
-    const el = [...document.querySelectorAll<HTMLElement>("button, a, [role=radio]")].find((b) => b.textContent?.trim().startsWith(t));
+    const el = [...document.querySelectorAll<HTMLElement>("button, a, [role=radio]")].find((b) => (b.getAttribute("aria-label") || b.textContent || "").trim().startsWith(t));
     el?.click();
     return !!el;
   }, text);
@@ -63,6 +63,7 @@ try {
   });
   page.on("console", (m) => m.type() === "error" && failures.push(`Console error: ${m.text()}`));
   page.on("pageerror", (e) => failures.push(`Page error: ${(e as Error).message}`));
+  page.on("dialog", (d) => void d.accept());
   // Workers report their requests on their own targets.
   browser.on("targetcreated", async (t) => {
     const w = await t.worker().catch(() => null);
@@ -71,24 +72,27 @@ try {
 
   step("Load the app and the sample");
   await page.goto(`${origin}/#/workspace/sample`, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".counts", { timeout: 20000 });
+  await page.waitForSelector(".ws[data-summary]", { timeout: 20000 });
 
   step("Switch the network off");
   await page.setOfflineMode(true);
 
   step("Open a project export and a tag export while offline");
+  await clickText(page, "Source files");
   await clickText(page, "Start over");
+  await page.waitForSelector(".open-panel");
   const input = await page.waitForSelector('input[type=file][accept=".gwbk,.zip,.json"]');
   await input!.uploadFile(join(work, "Riverbend.zip"), tagsFile);
-  await page.waitForFunction(() => document.querySelector(".counts")?.textContent?.includes("views"), { timeout: 20000 });
-  const counts = await page.$eval(".counts", (e) => e.textContent);
-  if (!counts?.includes("10views")) failures.push(`Unexpected counts offline: ${counts}`);
+  await page.waitForFunction(() => document.querySelector(".ws")?.getAttribute("data-summary")?.includes("views"), { timeout: 20000 });
+  const counts = await page.$eval(".ws", (e) => e.getAttribute("data-summary"));
+  if (!counts?.includes("10 views")) failures.push(`Unexpected counts offline: ${counts}`);
 
   step("Export everything while offline");
+  await clickText(page, "Export");
   for (const [label, name] of [
-    ["Reference (HTML)", /-reference\.html$/],
-    ["Word (.docx)", /-reference\.docx$/],
-    ["Inventories (CSV)", /-inventories\.zip$/],
+    ["Download Reference (HTML)", /-reference\.html$/],
+    ["Download Word (.docx)", /-reference\.docx$/],
+    ["Download Inventories (CSV)", /-inventories\.zip$/],
     ["Save workspace", /-workspace\.zip$/],
   ] as const) {
     const before = readdirSync(downloads, { withFileTypes: true }).length;

@@ -33,7 +33,7 @@ async function click(page: Page, text: string) {
   await wait(600);
 }
 
-/** Set a labelled field in the Personalize panel the way typing would. */
+/** Set a labelled field in the Customize panel the way typing would. */
 async function fill(page: Page, label: string, value: string) {
   const ok = await page.evaluate(
     (l, v) => {
@@ -54,10 +54,12 @@ async function fill(page: Page, label: string, value: string) {
 async function openSample(page: Page, scheme: "light" | "dark") {
   await page.evaluateOnNewDocument((s) => localStorage.setItem("dt.scheme", s), scheme);
   await page.goto(`${base}/#/workspace/sample`, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".counts");
+  await page.waitForSelector(".ws[data-summary]");
   await fill(page, "Customer", "City of Riverbend (sample)");
   await fill(page, "Prepared by", "Grindstone Systems");
+  await click(page, "Content");
   await fill(page, "What this system does", "Riverbend is a fictional 12 MGD surface-water treatment plant used to demonstrate Documentation Toolkit. Intake pumps feed four filters and a clearwell.");
+  await click(page, "Details");
   await wait(800);
 }
 
@@ -101,7 +103,8 @@ const shots: Shot[] = [
     name: "operator-framework",
     run: async (page) => {
       await openSample(page, "light");
-      await page.select(".panel.right select", "operator-manual");
+      await click(page, "Choose a pack");
+      await click(page, "Operator Manual Framework");
       await wait(900);
       await previewTo(page, "s-op-alarm-response");
     },
