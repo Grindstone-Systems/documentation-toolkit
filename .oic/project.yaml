@@ -30,7 +30,7 @@ media:
     type: image
     src: ./media/workspace.jpg
     title: A reference built in the browser
-    alt: The Documentation Toolkit workspace with inputs and counts on the left, a generated engineering reference showing a system map of pages, views and tag folders in the middle, and branding controls on the right.
+    alt: The Documentation Toolkit workspace with the Engineering Reference pack and its section outline on the left, a generated system map of pages, views and tag folders in the middle, and the Customize panel with document details on the right.
     caption: Workspace · The synthetic Riverbend sample project and tag export, processed on the device
     credit: Grindstone Systems
     rights: Provided for display, resizing and caching in the OIC project listing.

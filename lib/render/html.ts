@@ -43,7 +43,8 @@ export function renderHtml(doc: DocumentModel, cfg: ToolkitConfig, opts: HtmlOpt
   const body = doc.sections.map((s) => renderSection(s, number.get(s.id)!, statuses, opts)).join("\n");
   const index = !search ? [] : doc.sections.map((s) => ({ id: sid(s), t: s.title, x: plain(sectionText(s)).replace(/\s+/g, " ").slice(0, 20000) }));
   const meta = [id.customer, id.revision && `Revision ${id.revision}`, id.date, id.author].filter(Boolean).map((x) => esc(String(x)));
-  const footer = [id.confidentiality, id.customer, doc.title, id.revision && `Rev ${id.revision}`].filter(Boolean).map((x) => esc(String(x))).join(" · ");
+  const footerText = [id.confidentiality, id.customer, doc.title, id.revision && `Rev ${id.revision}`].filter(Boolean).map(String).join(" · ");
+  const footer = esc(footerText);
 
   return `<!doctype html>
 <html lang="en">
@@ -53,7 +54,7 @@ export function renderHtml(doc: DocumentModel, cfg: ToolkitConfig, opts: HtmlOpt
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
 <meta name="generator" content="Documentation Toolkit">
 <title>${esc(doc.title)} · ${esc(pack.label)}</title>
-<style>${css(t, accent, cfg)}</style>
+<style>${css(t, accent, cfg, footerText)}</style>
 </head>
 <body class="density-${cfg.appearance.density}">
 <header class="cover">
@@ -133,7 +134,10 @@ idx.forEach(function(s){var x=s.x.toLowerCase();if(!terms.every(function(t){retu
 var li=document.createElement('li');li.innerHTML='<a href="#'+s.id+'"><b>'+h(s.t)+'</b><span>'+(a>0?'… ':'')+h(snip)+' …</span></a>';r.appendChild(li);n++});
 if(!n){r.innerHTML='<li class="none">No matches</li>'}r.hidden=false});})();`;
 
-function css(t: (typeof THEME_TOKENS)[keyof typeof THEME_TOKENS], accent: string, cfg: ToolkitConfig): string {
+/** A CSS string literal that can't close the string or the surrounding <style> element. */
+const cssString = (s: string) => `"${s.replace(/[\\"<>\n]/g, (c) => `\\${c.charCodeAt(0).toString(16)} `)}"`;
+
+function css(t: (typeof THEME_TOKENS)[keyof typeof THEME_TOKENS], accent: string, cfg: ToolkitConfig, footerText: string): string {
   const compact = cfg.appearance.density === "compact";
   return `
 :root{--ink:${t.ink};--muted:${t.muted};--line:${t.line};--tint:${t.tint};--paper:${t.paper};--cover:${t.cover};--on-cover:${t.onCover};--accent:${accent};
@@ -205,18 +209,25 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px}
 .empty{color:var(--muted)}
 .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px clamp(20px,5vw,64px);border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
 @media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}.toc{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}}
-@page{size:${cfg.appearance.paper === "a4" ? "A4" : "letter"};margin:18mm 16mm 20mm}
+@page{size:${cfg.appearance.paper === "a4" ? "A4" : "letter"};margin:18mm 16mm 20mm;
+ @bottom-left{content:${cssString(footerText)};font:8pt var(--font);color:${t.muted}}
+ @bottom-right{content:counter(page) " / " counter(pages);font:8pt var(--font);color:${t.muted}}}
+@page:first{@bottom-left{content:none}@bottom-right{content:none}}
 @media print{
  body{font-size:${compact ? 9.5 : 10.5}pt}
- .toc,.results{display:none}
+ .toc input,.results,.toc .dot{display:none}
+ .toc{position:static;max-height:none;overflow:visible;padding:0;border:0;break-after:page}
+ .toc-title{margin-top:0;font-size:14pt;letter-spacing:0;text-transform:none;color:var(--ink)}
+ .toc-list a{padding:3px 0;font-size:10.5pt}
  .layout{display:block}
  main{padding:0}
  .cover{min-height:92vh;display:flex;flex-direction:column;justify-content:center;break-after:page;print-color-adjust:exact;-webkit-print-color-adjust:exact}
  .sec{break-inside:auto;border-bottom:0}
  .sec.appendix{break-before:page}
- h2,h3{break-after:avoid}
+ h2,h3,h2+p,h3+p{break-after:avoid}
  thead{display:table-header-group}
- tr,.facts div,.callout,figure{break-inside:avoid}
+ tr,.facts,.callout,figure,.diagram,pre{break-inside:avoid}
+ .facts{break-after:avoid}
  .table{overflow:visible;border:0}
  th{background:none;border-bottom:1.5px solid var(--ink)}
  a{color:inherit;text-decoration:none}

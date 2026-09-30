@@ -16,3 +16,6 @@ docs/sources/
 !demo/riverbend-demo.gwbk
 *.idb
 .local/
+
+# Agent worktrees
+.claude/worktrees/

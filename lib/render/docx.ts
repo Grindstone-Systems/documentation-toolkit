@@ -72,19 +72,41 @@ interface Ctx {
 
 const border = (color: string) => ({ style: BorderStyle.SINGLE, size: 4, color });
 
+/**
+ * Column widths (percent) from content, so a column of long unbroken tag paths
+ * can't squeeze a short one until "Boolean" wraps mid-word. Each column gets at
+ * least its longest word (capped), and the rest is shared by content length.
+ */
+function fitWidths(columns: string[], rows: string[][], contentWidth: number): number[] {
+  // Rough character widths: headers are small capitals, code is monospace; 2 for cell padding.
+  const len = (s: string, k: number) => Math.ceil(s.replace(/`|\*\*/g, "").length * (s.includes("`") ? 1.2 : k)) + 2;
+  const words = (s: string, k: number) => (s.includes("`") ? s.replace(/\s+/g, "`\u0000`") : s).split(/\s+|\u0000/).map((w) => len(w, k));
+  const body = (i: number) => rows.map((r) => r[i] ?? "");
+  const floor = columns.map((c, i) => Math.min(18, Math.max(5, ...words(c, 1.15), ...body(i).flatMap((v) => words(v, 1)))));
+  const want = columns.map((c, i) => Math.max(floor[i]!, Math.min(50, Math.max(len(c, 1.15), ...body(i).map((v) => len(v, 1))))));
+  const budget = contentWidth / 100; // ~100 twips a character at the table's 9.5 pt
+  const sumWant = want.reduce((a, b) => a + b, 0);
+  const sumFloor = floor.reduce((a, b) => a + b, 0);
+  const chars = sumWant <= budget || sumWant === sumFloor ? want : want.map((w, i) => floor[i]! + (Math.max(0, budget - sumFloor) * (w - floor[i]!)) / (sumWant - sumFloor));
+  const total = chars.reduce((a, b) => a + b, 0);
+  return chars.map((c) => Math.round((c / total) * 1000) / 10);
+}
+
 function table(ctx: Ctx, columns: string[], rows: string[][], opts: { widths?: number[]; header?: boolean } = {}): Table {
   const header = opts.header !== false;
+  const widths = opts.widths ?? fitWidths(columns, rows, ctx.contentWidth);
   const b = border(ctx.t.line);
   const cell = (text: string, head: boolean, i: number) =>
     new TableCell({
       children: [new Paragraph({ children: runs(text || " ", head ? { bold: true, size: 17, color: ctx.t.muted } : { size: 19 }), spacing: { before: 40, after: 40 } })],
       shading: head ? { type: ShadingType.CLEAR, color: "auto", fill: ctx.t.tint } : undefined,
       margins: { left: 100, right: 100, top: 30, bottom: 30 },
-      ...(opts.widths ? { width: { size: opts.widths[i]!, type: WidthType.PERCENTAGE } } : {}),
+      width: { size: Math.round((widths[i]! / 100) * ctx.contentWidth), type: WidthType.DXA },
     });
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    layout: TableLayoutType.AUTOFIT,
+    width: { size: ctx.contentWidth, type: WidthType.DXA },
+    columnWidths: widths.map((w) => Math.round((w / 100) * ctx.contentWidth)),
+    layout: TableLayoutType.FIXED,
     borders: { top: b, bottom: b, left: b, right: b, insideHorizontal: b, insideVertical: b },
     rows: [
       ...(header ? [new TableRow({ tableHeader: true, cantSplit: true, children: columns.map((c, i) => cell(c.toUpperCase(), true, i)) })] : []),

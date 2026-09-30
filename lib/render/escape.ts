@@ -5,7 +5,8 @@ export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;")
 /** Escape first, then apply inline marks, so no input can produce markup. */
 export function inline(s: string): string {
   return esc(s)
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    // Paths break after a slash rather than mid-name when a table column is narrow.
+    .replace(/`([^`]+)`/g, (_, c: string) => `<code>${c.replace(/\//g, "/<wbr>")}</code>`)
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 }
 
