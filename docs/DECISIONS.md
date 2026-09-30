@@ -13,6 +13,7 @@
 | 2026-09-29 | Only raster images (PNG, JPEG, WebP) are accepted as assets; SVG waits for a sanitiser | Adopted |
 | 2026-09-29 | Word export with the `docx` library (MIT, 9.x), loaded only when used; core-property dates pinned to the document date so output is reproducible | Adopted |
 | 2026-09-29 | Screenshots are user-supplied and re-encoded in the browser; the toolkit never renders or restores a gateway to capture them | Adopted |
+| 2026-09-30 | Ignition 8.1's internal database is read by a small read-only SQLite file-format reader in TypeScript (`lib/sqlite.ts`, about 6 KB gzipped in the worker), not sql.js. sql.js would add roughly 1 MB of WASM and glue, need `'wasm-unsafe-eval'` in the content security policy, async start-up, and a WASM file located separately by the worker and the CLI; the subset needed (table b-trees, records, overflow pages) is small and fully documented. It's plain synchronous code in the worker bundle, so there's nothing to load lazily or cache for offline use; it only runs when a backup has no `config/resources/` and has an internal database. It decodes only the columns asked for and refuses credential column names | Proposed |
 | 2026-09-29 | Hand-rolled MCP over stdio (initialize, tools/list, tools/call) instead of an SDK dependency, while the tool surface is small | Proposed |
 | 2026-09-29 | CLI name `oic-docs` and package identifiers are provisional until repository, npm and trademark checks | Proposed |
 | 2026-09-29 | Code Apache-2.0 | Proposed |

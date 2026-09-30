@@ -1,13 +1,14 @@
 import type { FileTree } from "../archive.ts";
 import type { EntityKind } from "../types.ts";
 import { flattenSettings, type Collector } from "./collector.ts";
+import { collectInternalDb, INTERNAL_DB, openInternalDb } from "./ignition-internal-db.ts";
 import { collectProject, wantProjectFile } from "./ignition-project.ts";
 import { collectTagNodes, tagRoots, type TagStore } from "./ignition-tags.ts";
 
 /**
  * Ignition gateway backups (.gwbk). 8.3 stores gateway configuration as files
- * under `config/resources/`, which we read. 8.1 and earlier keep it in an
- * internal SQLite database, which is reported but not decoded yet.
+ * under `config/resources/`. 8.1 and earlier keep it in an internal SQLite
+ * database, read by ignition-internal-db.ts.
  */
 
 const CONFIG = "config/resources/";
@@ -16,8 +17,10 @@ const CONFIG = "config/resources/";
 const SKIP_TYPES = /^(images|keyboard_layout|database-translator|database-driver|translations|themes|cobranding|quickstart|fonts|icons)$/;
 const SECRET_TYPES = /keystore|certificate|pki|uuid|secret/i;
 
-export const wantGatewayFile = (path: string, size: number) => {
+/** `legacy` is true when the backup has no `config/resources/`, so the internal database holds the configuration. */
+export const wantGatewayFile = (path: string, size: number, legacy = false) => {
   if (path === "backupinfo.xml") return true;
+  if (path === INTERNAL_DB) return legacy;
   if (path.startsWith("projects/")) return wantProjectFile(path, size);
   if (!path.startsWith(CONFIG) || !path.endsWith(".json") || size > 16 * 1024 * 1024) return false;
   // config/resources/<collection>/<module>/<type>/…
@@ -44,7 +47,9 @@ export function collectGateway(c: Collector, tree: FileTree, store: TagStore): G
   const info = backupInfo(tree.text("backupinfo.xml"));
   const fileBased = tree.entries.some((e) => e.path.startsWith(CONFIG));
   const sys = findConfig(tree, "ignition", "system-properties");
-  const sysName = typeof sys?.settings === "object" ? ((sys.settings as Record<string, unknown>).systemName as string | undefined) : undefined;
+  const idb = !fileBased && tree.has(INTERNAL_DB) ? tree.bytes(INTERNAL_DB) : undefined;
+  const internal = idb ? openInternalDb(idb) : undefined;
+  const sysName = typeof sys?.settings === "object" ? ((sys.settings as Record<string, unknown>).systemName as string | undefined) : internal && "db" in internal ? internal.systemName : undefined;
 
   c.add({
     id: "gateway:gateway",
@@ -72,14 +77,11 @@ export function collectGateway(c: Collector, tree: FileTree, store: TagStore): G
   }
 
   if (fileBased) collectConfig(c, tree, store);
-  else if (tree.has("db_backup_sqlite.idb")) {
-    c.count(
-      "ignition.internal-db",
-      "Gateway configuration (internal database)",
-      false,
-      "Ignition 8.1 and earlier keep tags, connections and devices in an internal database the browser edition doesn't decode yet. Add a tag export (JSON) to document tags.",
-    );
-    c.diag("warning", "legacy-gateway-config", "This backup stores gateway configuration in the internal database (Ignition 8.1 or earlier). Projects are documented; tags, connections and devices are not. Export tags from the Designer as JSON and add the file.");
+  else if (internal && "db" in internal) collectInternalDb(c, internal.db, store);
+  else if (tree.has(INTERNAL_DB)) {
+    const why = internal ? `It couldn't be read: ${internal.error}` : "It was too large to read.";
+    c.count("ignition.internal-db", "Gateway configuration (internal database)", false, `${why} Add a tag export (JSON) to document tags.`);
+    c.diag("warning", "legacy-gateway-config", `This backup stores gateway configuration in the internal database (Ignition 8.1 or earlier). ${why} Projects are documented; tags, connections and devices are not. Export tags from the Designer as JSON and add the file.`, c.src(INTERNAL_DB));
   }
 
   // Things we deliberately don't read, counted so nothing is silently omitted.

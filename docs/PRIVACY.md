@@ -21,7 +21,7 @@ It doesn't cover:
 | Generated references carry their own CSP (`default-src 'none'`) and embed images as data URIs | `lib/render/html.ts` |
 | The in-app preview is a sandboxed iframe that can't run scripts | `app/src/workspace/WorkspacePage.tsx` |
 | Tests fail if a generated reference references a remote URL | `lib/document.test.ts` |
-| CI serves the production build, switches the network off, processes files, runs every export and opens the exported reference from disk, and fails on any request that leaves the origin | `scripts/privacy-check.ts` (`pnpm privacy:check`) |
+| CI serves the production build, switches the network off, processes files (including a synthetic 8.1 backup, so the internal-database reader runs in the real worker), runs every export and opens the exported reference from disk, and fails on any request that leaves the origin | `scripts/privacy-check.ts` (`pnpm privacy:check`) |
 | The worker and lazily loaded code (sample, Word library) are fetched as soon as the app loads, so it keeps working offline | `app/src/workspace/offline.ts` |
 | Uploaded logos and screenshots are redrawn on a canvas and re-encoded, which drops metadata; SVG is never accepted | `app/src/workspace/images.ts` |
 
@@ -32,6 +32,7 @@ Every input is treated as hostile:
 - **Archives:** entry-count, per-entry and total-size limits are checked from the central directory before decompressing; only the entries an adapter needs are decompressed; paths with `..`, NUL or absolute roots are rejected. Nothing is extracted to disk. (`lib/archive.ts`)
 - **No execution:** scripts, expressions and SQL are read as text, never run. There's no deserialisation beyond `JSON.parse`.
 - **Credentials:** keys that look like passwords, secrets, tokens, keys or ciphertext, and Ignition's embedded encrypted values, are dropped during extraction and only counted. Keystores and certificates are never decompressed. (`lib/adapters/collector.ts`)
+- **Ignition 8.1 internal database:** read by a read-only SQLite file reader written in TypeScript, bundled in the worker; there's no SQL engine, WASM or network involved, and the content security policy is unchanged. Only named columns are decoded, and asking for a column whose name looks like a credential is refused, so password, key and certificate columns are never read; user, contact and security tables are only counted. Page numbers, sizes and loops are bounds-checked, and a damaged table is reported without losing the rest of the backup. (`lib/sqlite.ts`, `lib/adapters/ignition-internal-db.ts`)
 - **Output:** all text is HTML-escaped before rendering; only `inline code` and **bold** marks are applied afterwards. CSV cells that start like formulas are prefixed with `'`. Workspace files are sanitised on reimport, and the CLI and MCP server refuse to write outside the workspace.
 
 Secret detection is best effort. The toolkit never labels a pack as safe to share.

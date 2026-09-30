@@ -4,7 +4,7 @@
 
 Open a gateway backup, project export or tag export in your browser. You get a searchable engineering reference and an editable manual pack, with every fact traced to the file it came from. Nothing is uploaded. Your own AI assistant (Claude Code, Codex or any MCP client) can then explain and complete the pack through an optional local extension.
 
-> Status: **Experimental (0.1), testing phase.** Check generated documents against the source before relying on them. Reads Ignition 8.x project exports, tag exports and 8.3 gateway backups; 8.1 backups document projects only. Four packs (Engineering Reference, Operator Manual Framework, Maintenance Guide Framework, Complete Handoff), customer branding and screenshots. Exports: offline HTML, Word (.docx), print-to-PDF, CSV inventories and an agent workspace. Works offline once loaded. The `oic-docs` CLI and MCP server work locally but aren't published to npm yet. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Experimental (0.1), testing phase.** Check generated documents against the source before relying on them. Reads Ignition 8.x project exports, tag exports and 8.1 and 8.3 gateway backups (8.1 gateway configuration comes from the backup's internal database). Four packs (Engineering Reference, Operator Manual Framework, Maintenance Guide Framework, Complete Handoff), customer branding and screenshots. Exports: offline HTML, Word (.docx), print-to-PDF, CSV inventories and an agent workspace. Works offline once loaded. The `oic-docs` CLI and MCP server work locally but aren't published to npm yet. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 

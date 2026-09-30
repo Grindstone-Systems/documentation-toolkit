@@ -13,9 +13,9 @@ import { emptyEvidence, type Evidence, type InputFormat, type InputRecord } from
  */
 
 export const ADAPTERS = {
-  "ignition-gateway-backup": { name: "ignition.gateway", version: "0.1.1", label: "Ignition gateway backup" },
+  "ignition-gateway-backup": { name: "ignition.gateway", version: "0.2.0", label: "Ignition gateway backup" },
   "ignition-project-export": { name: "ignition.project", version: "0.1.0", label: "Ignition project export" },
-  "ignition-tag-json": { name: "ignition.tags", version: "0.1.1", label: "Ignition tag export (JSON)" },
+  "ignition-tag-json": { name: "ignition.tags", version: "0.1.2", label: "Ignition tag export (JSON)" },
   unknown: { name: "none", version: "0", label: "Unsupported file" },
 } as const satisfies Record<InputFormat, { name: string; version: string; label: string }>;
 
@@ -113,7 +113,8 @@ async function readFile(c: Collector, input: InputFile, store: TagStore, limits:
     const entries = listZip(input.bytes, limits);
     const d = detectArchive(input.name, entries);
     if (d.format === "unknown") throw new InputError("unknown-archive", `${d.reason} Supported: Ignition project exports and 8.x gateway backups.`);
-    const want = d.format === "ignition-gateway-backup" ? wantGatewayFile : (p: string, s: number) => p.startsWith(d.prefix ?? "") && wantProjectFile(p, s);
+    const legacy = !entries.some((e) => e.path.startsWith("config/resources/"));
+    const want = d.format === "ignition-gateway-backup" ? (p: string, s: number) => wantGatewayFile(p, s, legacy) : (p: string, s: number) => p.startsWith(d.prefix ?? "") && wantProjectFile(p, s);
     say({ stage: "reading", input: input.name, message: `Reading ${ADAPTERS[d.format].label.toLowerCase()}` });
     const { tree, skipped } = readZip(input.bytes, want, limits);
     for (const s of skipped) c.diag("warning", "entry-too-large", `Skipped ${s.path} (${Math.round(s.size / 1024 / 1024)} MB is over the per-file limit).`, c.src(s.path));

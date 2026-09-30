@@ -36,7 +36,9 @@ export function expandUdts(c: Collector, store: TagStore) {
       const id = tagId(inst.provider, path);
       const fields: Record<string, string | number | boolean | null | string[]> = { udtMember: true, definedIn: typeId };
       for (const k of ["dataType", "valueSource", "opcServer", "opcItemPath", "engUnit", "documentation", "tooltip", "historyEnabled"] as const) {
-        const v = node[k];
+        // Members often bind to parameters: { bindType: "parameter", binding: "ns=1;s=[{PLC}]…" }.
+        const raw = node[k];
+        const v = raw && typeof raw === "object" && typeof (raw as { binding?: unknown }).binding === "string" ? (raw as { binding: string }).binding : raw;
         if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") fields[k] = typeof v === "string" ? substitute(v, params) : v;
       }
       const source = c.src(def.file);

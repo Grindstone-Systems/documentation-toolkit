@@ -16,6 +16,7 @@ import puppeteer, { type Page } from "puppeteer-core";
 import { preview } from "vite";
 import { treeFromDir } from "../cli/fs.ts";
 import { zipOf } from "../test/helpers.ts";
+import { makeBackup81 } from "../test/idb81.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const chrome = process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -27,6 +28,8 @@ mkdirSync(downloads);
 const tree = treeFromDir(`${root}fixtures/sample/riverbend-project`);
 writeFileSync(join(work, "Riverbend.zip"), zipOf(Object.fromEntries(tree.entries.map((e) => [e.path, tree.bytes(e.path)!]))));
 const tagsFile = `${root}fixtures/sample/riverbend-tags.json`;
+// A synthetic Ignition 8.1 backup, so the internal-database reader runs in the real worker.
+writeFileSync(join(work, "riverbend-81.gwbk"), makeBackup81());
 
 const server = await preview({ root: `${root}app`, configFile: `${root}vite.config.ts`, preview: { port: 5198, strictPort: true }, logLevel: "error" });
 const origin = "http://127.0.0.1:5198";
@@ -99,6 +102,17 @@ try {
     await clickText(page, label);
     step(`  ${await waitForDownload(name, before)}`);
   }
+
+  step("Open a synthetic 8.1 gateway backup (internal database) while offline");
+  await page.keyboard.press("Escape");
+  await clickText(page, "Source files");
+  await clickText(page, "Start over");
+  await page.waitForSelector(".open-panel");
+  const input81 = await page.waitForSelector('input[type=file][accept=".gwbk,.zip,.json"]');
+  await input81!.uploadFile(join(work, "riverbend-81.gwbk"));
+  await page.waitForFunction(() => document.querySelector(".ws")?.getAttribute("data-summary")?.includes("407 tags"), { timeout: 20000 }).catch(async () => {
+    failures.push(`8.1 backup not decoded offline: ${await page.$eval(".ws", (e) => e.getAttribute("data-summary")).catch(() => "no workspace")}`);
+  });
 
   step("Open the exported reference from disk with the network off");
   const html = readdirSync(downloads).find((f) => f.endsWith(".html"))!;

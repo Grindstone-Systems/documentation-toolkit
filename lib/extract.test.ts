@@ -160,7 +160,7 @@ describe("gateway backups", () => {
     expect(ev.coverage.find((c) => c.label === "Certificates and keystores")).toMatchObject({ read: 0 });
   });
 
-  it("documents 8.1 projects and says why gateway config is missing", async () => {
+  it("documents 8.1 projects and says why gateway config is missing when the database can't be read", async () => {
     const zip = zipOf({
       "db_backup_sqlite.idb": new Uint8Array(16),
       "gateway.xml": "<x/>",

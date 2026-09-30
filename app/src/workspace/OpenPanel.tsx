@@ -12,7 +12,7 @@ const FORMATS: { ext: string; label: string; versions: { v: string; s: Support; 
     label: "Gateway backup",
     versions: [
       { v: "8.3", s: "full", note: "Projects, tags, providers, connections and gateway settings" },
-      { v: "8.1", s: "partial", note: "Projects only. Add a tag export for tags and alarms" },
+      { v: "8.1", s: "full", note: "Projects, plus tags, providers, connections and devices from the internal database" },
     ],
     detail: "All projects, plus tags, tag providers, OPC and database connections, user sources and other gateway settings. Credentials are never read.",
   },

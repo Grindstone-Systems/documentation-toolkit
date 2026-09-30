@@ -77,7 +77,7 @@ export const GROUPS: ToolGroup[] = [
         details: [
           "Each adapter declares versions, resource types and what it can't read.",
           "Evidence stays platform-neutral, so packs and exports work unchanged.",
-          "Ignition 8.1 gateway configuration (stored in SQLite) and Vision windows are the first candidates.",
+          "Within Ignition, Vision windows and reports are the first candidates.",
         ],
         progress: "Not started. The evidence schema is versioned and platform-neutral to allow it.",
       },
