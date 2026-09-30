@@ -17,6 +17,8 @@ pnpm privacy:check   # after a build: no request leaves the origin; works offlin
 
 Requires Node ≥ 22.12 and pnpm 10.
 
+**Demo file:** [`demo/riverbend-demo.gwbk`](demo/) is a synthetic Ignition 8.3 gateway backup of a fictional water plant, made to show everything the toolkit reads (and refuses to read). Drop it into the app. Regenerate with `pnpm demo:backup`.
+
 The local extension, from a checkout:
 
 ```bash

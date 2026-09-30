@@ -183,3 +183,18 @@ describe("tag paths", () => {
     expect(parseTagPath("[default]A/{1}/B")).toBeUndefined();
   });
 });
+
+describe("demo backup (demo/riverbend-demo.gwbk)", () => {
+  it("documents the whole synthetic gateway without leaking its planted secrets", async () => {
+    const { readFileSync } = await import("node:fs");
+    const bytes = new Uint8Array(readFileSync(new URL("../demo/riverbend-demo.gwbk", import.meta.url)));
+    const ev = await extract([{ name: "riverbend-demo.gwbk", bytes }]);
+    const count = (k: string) => ev.entities.filter((e) => e.kind === k).length;
+    expect(ev.inputs[0]).toMatchObject({ format: "ignition-gateway-backup", platformVersion: "8.3.9" });
+    expect([count("project"), count("opc-connection"), count("database-connection"), count("device"), count("udt-type"), count("alarm")]).toEqual([2, 2, 1, 3, 2, 15]);
+    expect(ev.relationships.some((r) => r.type === "uses-connection" && r.to === "opc-connection:Plant OPC UA Server")).toBe(true);
+    const text = JSON.stringify(ev);
+    for (const s of ["DEMO-NOT-A-REAL-SECRET", "demo-password-never-shown", "demo-hash-", "operator1"]) expect(text).not.toContain(s);
+    expect(ev.diagnostics.find((d) => d.code === "secrets-excluded")?.message).toMatch(/^4 credential values/);
+  });
+});

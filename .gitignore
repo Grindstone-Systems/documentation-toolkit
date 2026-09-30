@@ -12,5 +12,7 @@ docs/sources/
 
 # Never commit real customer backups or exports; fixtures are synthetic only.
 *.gwbk
+# …except the synthetic demo backup (pnpm demo:backup)
+!demo/riverbend-demo.gwbk
 *.idb
 .local/

@@ -27,7 +27,8 @@
     "check": "pnpm typecheck && pnpm test && pnpm build && pnpm build:cli",
     "privacy:check": "tsx scripts/privacy-check.ts",
     "oic:media": "tsx scripts/oic-media.ts",
-    "oic:check": "tsx scripts/oic-check.ts"
+    "oic:check": "tsx scripts/oic-check.ts",
+    "demo:backup": "tsx scripts/make-demo-backup.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
