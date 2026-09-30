@@ -7,31 +7,21 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
-      - run: pnpm build:cli
+    uses: Grindstone-Systems/.github/.github/workflows/check.yml@main
+    with:
+      run: |
+        pnpm typecheck
+        pnpm test
+        pnpm build
+        pnpm build:cli
   privacy:
     # Plan acceptance: nothing leaves the origin, and processing and exports work offline.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - run: pnpm privacy:check
-        env:
-          CHROME_PATH: /usr/bin/google-chrome
+    uses: Grindstone-Systems/.github/.github/workflows/check.yml@main
+    with:
+      chrome: true
+      run: |
+        pnpm build
+        pnpm privacy:check
+  oic-profile:
+    # The listing, checked with OIC's own importer and Charter preflight.
+    uses: Grindstone-Systems/.github/.github/workflows/oic-profile.yml@main
