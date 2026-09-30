@@ -204,7 +204,6 @@ export function WorkspacePage({
     const n = ev.entities.filter((e) => kinds.includes(e.kind)).length;
     return { n, label: n === 1 ? one : many };
   }).filter((c) => c.n);
-  const needsSite = doc.sections.filter((s) => s.status === "unresolved").length;
   const docTab = tab === "document";
   const overlayOpen = docTab && ((showOutline && !roomForOutline) || (showCustomize && !roomForCustomize));
 
@@ -318,11 +317,6 @@ export function WorkspacePage({
         />
 
         <div className="ws-bar-end">
-          {docTab && needsSite > 0 && (
-            <span className="needs" title="Sections that only the site can complete">
-              <i className="sdot st-unresolved" /> {needsSite} need{needsSite === 1 ? "s" : ""} the site
-            </span>
-          )}
           {docTab && (
             <button className={`button${showCustomize ? " pressed" : ""}`} onClick={() => setShowCustomize((v) => !v)} aria-pressed={showCustomize}>
               <Icon name="sliders" size={15} />

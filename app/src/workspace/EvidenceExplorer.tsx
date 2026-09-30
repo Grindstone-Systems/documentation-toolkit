@@ -21,6 +21,31 @@ const KIND_LABEL: Partial<Record<EntityKind, string>> = {
 
 const LIMIT = 300;
 
+/** Group headings in the "All" list. */
+const KIND_GROUP: Partial<Record<EntityKind, string>> = { ...KIND_LABEL, "named-query": "Named queries", "opc-connection": "OPC connections", "database-connection": "Database connections", resource: "Other resources" };
+
+/** Field keys as people read them: opcItemPath → OPC item path. */
+const ACRONYMS: Record<string, string> = { opc: "OPC", udt: "UDT", sql: "SQL", url: "URL", id: "ID", ip: "IP", jdbc: "JDBC", ua: "UA", eng: "Eng." };
+const human = (k: string) =>
+  k
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_.]+/g, " ")
+    .toLowerCase()
+    .split(" ")
+    .map((w, i) => ACRONYMS[w] ?? (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ");
+
+/** The item's own name in ink, the path that leads to it muted. */
+function Name({ text }: { text: string }) {
+  const cut = Math.max(text.lastIndexOf("/"), text.lastIndexOf("#")) + 1;
+  return (
+    <span className="ename">
+      {cut > 0 && <span className="epath">{text.slice(0, cut)}</span>}
+      {text.slice(cut)}
+    </span>
+  );
+}
+
 /** Inspect any extracted item: its fields, source, links, and where it appears in the document. */
 export function EvidenceExplorer({
   evidence,
@@ -69,19 +94,30 @@ export function EvidenceExplorer({
           ))}
         </div>
         <ul className="entity-list" role="listbox" aria-label="Evidence">
-          {results.slice(0, LIMIT).map((e) => (
+          {results.slice(0, LIMIT).map((e, i, shown) => [
+            kind === "all" && e.kind !== shown[i - 1]?.kind && (
+              <li key={`g-${e.kind}`} className="egroup" role="presentation">
+                {KIND_GROUP[e.kind] ?? e.kind.replace(/-/g, " ")}
+              </li>
+            ),
             <li key={e.id} role="option" aria-selected={e.id === focus} className={e.id === focus ? "on" : ""} onClick={() => setFocus(e.id)}>
-              <span className={`kind k-${e.kind}`}>{e.kind.replace(/-/g, " ")}</span>
-              <span className="ename">{label(e)}</span>
+              <Name text={label(e)} />
               {!e.interpreted && <span className="pill">listed</span>}
-            </li>
-          ))}
+            </li>,
+          ])}
           {results.length > LIMIT && <li className="more">{(results.length - LIMIT).toLocaleString()} more. Refine the search.</li>}
           {!results.length && <li className="more">Nothing matches.</li>}
         </ul>
       </div>
       <div className="explorer-detail">
-        {selected ? <Detail e={selected} evidence={evidence} doc={doc} byId={byId} setFocus={setFocus} showSection={showSection} /> : <p className="muted pad">Select an item to see its configuration, where it came from and where it appears in the document.</p>}
+        {selected ? (
+          <Detail e={selected} evidence={evidence} doc={doc} byId={byId} setFocus={setFocus} showSection={showSection} />
+        ) : (
+          <div className="detail-empty">
+            <b>Nothing selected</b>
+            <p>Pick an item to see its configuration, the file it came from and where it appears in the document.</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -117,7 +153,13 @@ function Detail({
       <p className="eyebrow">{e.kind.replace(/-/g, " ")}</p>
       <h2>{label(e)}</h2>
       <p className="source">
-        <Icon name="docs" size={12} /> <code>{e.source.input}</code> › <code>{e.source.path}</code>
+        <Icon name="docs" size={12} /> <code>{e.source.input}</code>
+        {e.source.path !== e.source.input && (
+          <>
+            {" "}
+            › <code>{e.source.path}</code>
+          </>
+        )}
         {e.source.at && <code>{e.source.at}</code>}
       </p>
       {!e.interpreted && <p className="note">Listed by name only. This resource type isn't interpreted yet.</p>}
@@ -141,8 +183,8 @@ function Detail({
           <dl className="fields">
             {fields.map(([k, v]) => (
               <div key={k}>
-                <dt>
-                  {k}
+                <dt title={k}>
+                  {human(k)}
                   {e.sensitive?.[k] && <span className="sens">{e.sensitive[k]}</span>}
                 </dt>
                 <dd>{Array.isArray(v) ? v.join(", ") || "—" : String(v)}</dd>

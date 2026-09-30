@@ -87,16 +87,20 @@ export function Popover({
 /** Modal dialog on the native <dialog> element, so focus and Escape behave. */
 export function Modal({ open, onClose, title, subtitle, children, footer }: { open: boolean; onClose: () => void; title: string; subtitle?: ReactNode; children: ReactNode; footer?: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
-    else if (!open && d.open) d.close();
+    if (open && !d.open) {
+      d.showModal();
+      // Start focus on the dialog itself, not its close button, so nothing looks pre-selected.
+      body.current?.focus();
+    } else if (!open && d.open) d.close();
   }, [open]);
   return (
     <dialog ref={ref} className="modal" onClose={onClose} onMouseDown={(e) => e.target === ref.current && onClose()} aria-label={title}>
       {open && (
-        <div className="modal-body">
+        <div className="modal-body" ref={body} tabIndex={-1}>
           <header className="modal-head">
             <div>
               <h2>{title}</h2>

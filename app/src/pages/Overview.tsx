@@ -21,25 +21,11 @@ export function Overview({ ws, navigate }: { ws: WorkspaceApi; navigate: (id: Pa
     <div className="home">
       <section className="home-hero">
         <div className="home-copy">
-          <p className="eyebrow">For Ignition integrators</p>
-          <h1>
-            Turn an Ignition backup into documentation <span>you can hand over.</span>
-          </h1>
+          <h1>Turn an Ignition backup into documentation you can hand over.</h1>
           <p className="lede">
             A linked engineering reference and editable manual pack, built from the configuration itself. Every fact is traced to the file it came from, and nothing
             leaves your device.
           </p>
-          <ul className="home-points">
-            <li>
-              <Icon name="shield" size={15} /> Private. Processed in your browser.
-            </li>
-            <li>
-              <Icon name="check" size={15} /> Honest. Gaps are marked, never invented.
-            </li>
-            <li>
-              <Icon name="download" size={15} /> Portable. HTML, Word, PDF and CSV.
-            </li>
-          </ul>
           {current && (
             <button className="resume" onClick={toWorkspace}>
               <span>
@@ -70,7 +56,6 @@ export function Overview({ ws, navigate }: { ws: WorkspaceApi; navigate: (id: Pa
         <div className="pack-grid">
           {PACKS.map((p) => (
             <div key={p.id} className="pack-card">
-              <span className={`pack-kind${p.framework ? " fw" : ""}`}>{p.framework ? "Framework" : "Reference"}</span>
               <strong>{p.label}</strong>
               <p>{p.summary}</p>
             </div>

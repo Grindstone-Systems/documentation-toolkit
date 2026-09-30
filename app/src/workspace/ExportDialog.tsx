@@ -116,7 +116,7 @@ export function ExportDialog({
       id: "workspace",
       ext: "ZIP",
       title: "Agent workspace",
-      text: "Evidence and editable Markdown for Claude Code, Codex or any assistant. Reopen it here to rebuild with your edits.",
+      text: "Evidence and editable Markdown for Claude Code, Codex or another assistant. A cloud assistant sends what it reads to its provider.",
       action: "Save",
       aria: "Save workspace (.zip)",
       job: async () => {
@@ -133,13 +133,10 @@ export function ExportDialog({
       <div className="export-grid">
         <ul className="formats-list">
           {FORMATS.map((f) => (
-            <li key={f.id} className={f.id === "workspace" ? "agent" : ""}>
+            <li key={f.id}>
               <FileBadge ext={f.ext} tone={f.id === "html" ? "brand" : "neutral"} />
               <div className="fl-text">
-                <b>
-                  {f.title}
-                  {f.id === "html" && <span className="rec">Recommended</span>}
-                </b>
+                <b>{f.title}</b>
                 <span>{f.text}</span>
               </div>
               <button className={f.id === "html" ? "button primary" : "button"} disabled={busy !== null} aria-label={f.aria} onClick={() => void run(f.id, f.job)}>
@@ -158,14 +155,14 @@ export function ExportDialog({
                 <label className="switch-row">
                   <span>
                     <b>
-                      {s.label} <em>{exposure[s.key]}</em>
+                      {s.label} <em>{exposure[s.key] || "none"}</em>
                     </b>
                     <small>{s.hint}</small>
                   </span>
                   <input
                     type="checkbox"
                     role="switch"
-                    checked={!cfg.redact[s.flag]}
+                    checked={!!exposure[s.key] && !cfg.redact[s.flag]}
                     disabled={!exposure[s.key]}
                     aria-label={`Include ${s.label.toLowerCase()}`}
                     onChange={(e) => setConfig((c) => ({ ...c, redact: { ...c.redact, [s.flag]: !e.target.checked } }))}
@@ -175,8 +172,8 @@ export function ExportDialog({
             ))}
           </ul>
           <p className="hint">
-            <Icon name="shield" size={13} /> Passwords and keys are never read{secrets ? ` (${secrets.message.match(/^\d+/)?.[0] ?? "some"} excluded)` : ""}. Detection can miss
-            things, so review before you share.
+            Passwords and keys are never read{secrets ? ` (${secrets.message.match(/^\d+/)?.[0] ?? "some"} excluded)` : ""}. Detection can miss things, so review before you
+            share.
           </p>
           {unresolved > 0 && (
             <p className="hint warn">
@@ -184,7 +181,6 @@ export function ExportDialog({
               Unresolved.
             </p>
           )}
-          <p className="hint">A cloud-based assistant sends what it reads to its provider. Processing here stays on this device.</p>
         </aside>
       </div>
     </Modal>

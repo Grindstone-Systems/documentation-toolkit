@@ -160,8 +160,8 @@ export function CustomizePanel({ api, notify, onClose }: { api: SessionApi; noti
               </div>
             </div>
             <div className="field">
-              <span>Accent colour</span>
-              <div className={`accents${cfg.appearance.theme === "mono" ? " disabled" : ""}`} role="radiogroup" aria-label="Accent colour">
+              <span>Accent color</span>
+              <div className={`accents${cfg.appearance.theme === "mono" ? " disabled" : ""}`} role="radiogroup" aria-label="Accent color">
                 {ACCENTS.map((a) => (
                   <button
                     key={a}
@@ -174,8 +174,8 @@ export function CustomizePanel({ api, notify, onClose }: { api: SessionApi; noti
                     onClick={() => appearance({ accent: a })}
                   />
                 ))}
-                <label className={`accent-custom${ACCENTS.includes(cfg.appearance.accent) ? "" : " on"}`} title="Custom colour">
-                  <input type="color" value={cfg.appearance.accent} disabled={cfg.appearance.theme === "mono"} onChange={(e) => appearance({ accent: e.target.value })} aria-label="Custom accent colour" />
+                <label className={`accent-custom${ACCENTS.includes(cfg.appearance.accent) ? "" : " on"}`} title="Custom color">
+                  <input type="color" value={cfg.appearance.accent} disabled={cfg.appearance.theme === "mono"} onChange={(e) => appearance({ accent: e.target.value })} aria-label="Custom accent color" />
                 </label>
               </div>
               {cfg.appearance.theme === "mono" && <small className="hint">Monochrome prints in black only.</small>}

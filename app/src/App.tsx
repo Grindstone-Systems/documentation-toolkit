@@ -10,15 +10,19 @@ import { WorkspacePage } from "./workspace/WorkspacePage.tsx";
 
 type Scheme = "light" | "dark";
 
-/** Per-viewer convenience only; storage may be unavailable. */
+/**
+ * Light by default, like the other Grindstone toolkits; dark only when the
+ * viewer picks it. Only an explicit choice is stored (a per-viewer convenience;
+ * storage may be unavailable).
+ */
+const SCHEME_KEY = "dt.theme";
 function initialScheme(): Scheme {
   try {
-    const s = localStorage.getItem("dt.scheme");
-    if (s === "light" || s === "dark") return s;
+    if (localStorage.getItem(SCHEME_KEY) === "dark") return "dark";
   } catch {
     /* private window */
   }
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "light";
 }
 
 export function App() {
@@ -48,11 +52,6 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = scheme;
-    try {
-      localStorage.setItem("dt.scheme", scheme);
-    } catch {
-      /* private window */
-    }
   }, [scheme]);
 
   // Work in progress lives only in memory, so warn before it's lost.
@@ -75,7 +74,15 @@ export function App() {
     navigate("docs.workspace");
   }, [startSample, navigate]);
 
-  const toggleTheme = useCallback(() => setScheme((s) => (s === "dark" ? "light" : "dark")), []);
+  const toggleTheme = useCallback(() => {
+    const next = scheme === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem(SCHEME_KEY, next);
+    } catch {
+      /* private window */
+    }
+    setScheme(next);
+  }, [scheme]);
   const page = pageById(route.page);
 
   useEffect(() => {

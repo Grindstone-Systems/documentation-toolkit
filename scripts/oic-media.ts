@@ -52,7 +52,7 @@ async function fill(page: Page, label: string, value: string) {
 }
 
 async function openSample(page: Page, scheme: "light" | "dark") {
-  await page.evaluateOnNewDocument((s) => localStorage.setItem("dt.scheme", s), scheme);
+  await page.evaluateOnNewDocument((s) => localStorage.setItem("dt.theme", s), scheme);
   await page.goto(`${base}/#/workspace/sample`, { waitUntil: "networkidle0" });
   await page.waitForSelector(".ws[data-summary]");
   await fill(page, "Customer", "City of Riverbend (sample)");
@@ -88,7 +88,7 @@ const shots: Shot[] = [
       await click(page, "Evidence");
       await page.type(".search-field input", "P101 speed");
       await wait(300);
-      await page.click(".entity-list li");
+      await page.click(".entity-list li[role=option]");
       await wait(600);
     },
   },
@@ -125,7 +125,7 @@ const shots: Shot[] = [
   {
     name: "agents",
     run: async (page) => {
-      await page.evaluateOnNewDocument(() => localStorage.setItem("dt.scheme", "dark"));
+      await page.evaluateOnNewDocument(() => localStorage.setItem("dt.theme", "dark"));
       await page.goto(`${base}/#/agents`, { waitUntil: "networkidle0" });
     },
   },

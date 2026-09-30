@@ -6,7 +6,12 @@ import { Icon } from "../ui/icons.tsx";
 import type { SessionApi } from "./session.ts";
 
 const LEGEND: SectionStatus[] = ["unresolved", "ai-draft", "confirmed"];
-const LEGEND_TEXT: Record<SectionStatus, string> = { extracted: "From the configuration", unresolved: "Needs the site", "ai-draft": "AI draft, needs review", confirmed: "Confirmed by a person" };
+const LEGEND_TEXT: Record<SectionStatus, [string, string]> = {
+  extracted: ["from the configuration", "from the configuration"],
+  unresolved: ["needs the site", "need the site"],
+  "ai-draft": ["AI draft to review", "AI drafts to review"],
+  confirmed: ["confirmed by a person", "confirmed by a person"],
+};
 
 /** Pack choice and the document's sections: jump to one, or leave it out. */
 export function Outline({ api, document: doc, active, onJump }: { api: SessionApi; document: DocumentModel; active?: string; onJump: (id: string) => void }) {
@@ -23,7 +28,7 @@ export function Outline({ api, document: doc, active, onJump }: { api: SessionAp
     const appx = doc.sections.filter((s) => s.appendix);
     return new Map(doc.sections.map((s) => [s.id, s.appendix ? String.fromCharCode(65 + appx.indexOf(s)) : String(main.indexOf(s) + 1)]));
   }, [doc]);
-  const present = LEGEND.filter((st) => doc.sections.some((s) => s.status === st));
+  const present = LEGEND.map((st) => [st, doc.sections.filter((s) => s.status === st).length] as const).filter(([, n]) => n > 0);
 
   return (
     <div className="outline">
@@ -100,9 +105,9 @@ export function Outline({ api, document: doc, active, onJump }: { api: SessionAp
       </ol>
       {present.length > 0 && (
         <ul className="legend">
-          {present.map((st) => (
+          {present.map(([st, n]) => (
             <li key={st}>
-              <i className={`sdot st-${st}`} /> {LEGEND_TEXT[st]}
+              <i className={`sdot st-${st}`} /> {n} {LEGEND_TEXT[st][n === 1 ? 0 : 1]}
             </li>
           ))}
         </ul>

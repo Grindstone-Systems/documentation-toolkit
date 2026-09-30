@@ -3,29 +3,27 @@ import { FileBadge } from "../ui/controls.tsx";
 import { Icon } from "../ui/icons.tsx";
 import { ACCEPT, type WorkspaceApi } from "./useWorkspace.ts";
 
-type Support = "full" | "partial";
-
-/** What each input yields today. Mirrors docs/ROADMAP.md; details show on hover. */
-const FORMATS: { ext: string; label: string; versions: { v: string; s: Support; note: string }[]; detail: string }[] = [
+/** What each input yields today. Mirrors docs/EVIDENCE.md; details show on hover. */
+const FORMATS: { ext: string; label: string; versions: { v: string; note: string }[]; detail: string }[] = [
   {
     ext: "GWBK",
     label: "Gateway backup",
     versions: [
-      { v: "8.3", s: "full", note: "Projects, tags, providers, connections and gateway settings" },
-      { v: "8.1", s: "full", note: "Projects, plus tags, providers, connections and devices from the internal database" },
+      { v: "8.3", note: "Projects, tags, providers, connections and gateway settings" },
+      { v: "8.1", note: "Projects, plus tags, providers, connections and devices from the internal database" },
     ],
     detail: "All projects, plus tags, tag providers, OPC and database connections, user sources and other gateway settings. Credentials are never read.",
   },
   {
     ext: "ZIP",
     label: "Project export",
-    versions: [{ v: "8.x", s: "full", note: "Perspective, scripts, named queries, event scripts" }],
+    versions: [{ v: "8.x", note: "Perspective, scripts, named queries, event scripts" }],
     detail: "Perspective pages, views and bindings, project scripts, named queries and gateway event scripts. Vision, reports and other modules are listed by name.",
   },
   {
     ext: "JSON",
     label: "Tag export",
-    versions: [{ v: "8.x", s: "full", note: "Folders, tags, UDTs, instances and alarms" }],
+    versions: [{ v: "8.x", note: "Folders, tags, UDTs, instances and alarms" }],
     detail: "Folders, tags, UDT definitions and instances, and alarms. UDT members are expanded with parameters substituted.",
   },
 ];
@@ -91,13 +89,10 @@ export function OpenPanel({ ws, onStart }: { ws: WorkspaceApi; onStart?: () => v
               <span className="fmt-text">
                 <b>{f.label}</b>
                 <span className="fmt-versions">
-                  {f.versions.map((v) => (
-                    <span key={v.v} className={`ver ver-${v.s}`} title={`Ignition ${v.v}: ${v.note}`}>
-                      <i aria-hidden="true" />
-                      {v.v}
-                      <span className="sr-only">{v.s === "full" ? " fully supported" : " partly supported"}</span>
-                    </span>
-                  ))}
+                  {f.versions
+                    .map((v) => v.v)
+                    .sort()
+                    .join(" · ")}
                 </span>
               </span>
             </li>
@@ -120,20 +115,6 @@ export function OpenPanel({ ws, onStart }: { ws: WorkspaceApi; onStart?: () => v
           <Icon name="restart" size={14} /> Reopen a saved workspace
         </button>
       </div>
-
-      <p className="open-legend">
-        <span className="ver ver-full">
-          <i aria-hidden="true" />
-          Fully read
-        </span>
-        <span className="ver ver-partial">
-          <i aria-hidden="true" />
-          Partly read
-        </span>
-        <span className="open-private">
-          <Icon name="shield" size={13} /> Read on this device. Nothing is uploaded.
-        </span>
-      </p>
     </div>
   );
 }
