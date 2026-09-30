@@ -1,0 +1,68 @@
+{
+  "custom": {},
+  "params": {
+    "filter": "Filter1"
+  },
+  "props": {
+    "defaultSize": {
+      "width": 260,
+      "height": 160
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "children": [
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Turbidity"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "indirect",
+                "tagPath": "[default]Riverbend/Filters/{1}/Turbidity",
+                "references": {
+                  "1": "{view.params.filter}"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "HeadLoss"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "indirect",
+                "tagPath": "[default]Riverbend/Filters/{1}/HeadLoss",
+                "references": {
+                  "1": "{view.params.filter}"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "propConfig": {
+    "params.filter": {
+      "paramDirection": "input"
+    }
+  }
+}

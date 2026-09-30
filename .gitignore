@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-cli/
+.vite/
+coverage/
+*.tsbuildinfo
+.DS_Store
+out/
+
+# Internal planning documents (kept local, not published)
+docs/sources/
+
+# Never commit real customer backups or exports; fixtures are synthetic only.
+*.gwbk
+*.idb
+.local/

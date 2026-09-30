@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "workspace",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev",
+        "--port",
+        "5186",
+        "--strictPort"
+      ],
+      "port": 5186
+    },
+    {
+      "name": "out",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4320",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "out"
+      ],
+      "port": 4320
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "preview",
+        "--port",
+        "5187",
+        "--strictPort"
+      ],
+      "port": 5187
+    }
+  ]
+}

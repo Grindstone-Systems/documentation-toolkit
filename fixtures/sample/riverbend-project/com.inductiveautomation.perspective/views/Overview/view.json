@@ -1,0 +1,152 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "root": {
+    "type": "ia.container.coord",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "children": [
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "RawFlow"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "direct",
+                "tagPath": "[default]Riverbend/Intake/RawFlow",
+                "fallbackDelay": 2.5
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "TotalFlow"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "numberFormat({[default]Riverbend/Plant/TotalFlow}, '#,##0') + ' gpm'"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "ClearwellLevel"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "direct",
+                "tagPath": "[default]Riverbend/Clearwell/Level",
+                "fallbackDelay": 2.5
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Turbidity1"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "direct",
+                "tagPath": "[default]Riverbend/Filters/Filter1/Turbidity",
+                "fallbackDelay": 2.5
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.view",
+        "meta": {
+          "name": "Pump1"
+        },
+        "props": {
+          "path": "Components/PumpTile",
+          "params": {
+            "pumpPath": "[default]Riverbend/Pumps/P101",
+            "pumpName": "P101"
+          }
+        }
+      },
+      {
+        "type": "ia.display.view",
+        "meta": {
+          "name": "Pump2"
+        },
+        "props": {
+          "path": "Components/PumpTile",
+          "params": {
+            "pumpPath": "[default]Riverbend/Pumps/P102",
+            "pumpName": "P102"
+          }
+        }
+      },
+      {
+        "type": "ia.display.view",
+        "meta": {
+          "name": "Pump3"
+        },
+        "props": {
+          "path": "Components/PumpTile",
+          "params": {
+            "pumpPath": "[default]Riverbend/Pumps/P103",
+            "pumpName": "P103"
+          }
+        }
+      },
+      {
+        "type": "ia.display.table",
+        "meta": {
+          "name": "DailyFlow"
+        },
+        "props": {},
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "type": "query",
+              "config": {
+                "queryPath": "Reports/DailyFlow",
+                "parameters": {
+                  "StartDate": "now(0)"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

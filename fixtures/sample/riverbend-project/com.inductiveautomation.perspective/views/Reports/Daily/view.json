@@ -1,0 +1,73 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "children": [
+      {
+        "type": "ia.display.table",
+        "meta": {
+          "name": "Flow"
+        },
+        "props": {},
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "type": "query",
+              "config": {
+                "queryPath": "Reports/DailyFlow"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Chlorine"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "direct",
+                "tagPath": "[default]Riverbend/Chemical/ChlorineResidual",
+                "fallbackDelay": 2.5
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "Export"
+        },
+        "props": {},
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "script",
+              "scope": "G",
+              "config": {
+                "script": "\tdata = riverbend.reports.dailySummary(system.date.now())\n\tsystem.perspective.download('daily.csv', system.dataset.toCSV(data))"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,362 @@
+{
+  "name": "",
+  "tagType": "Provider",
+  "tags": [
+    {
+      "name": "_types_",
+      "tagType": "Folder",
+      "tags": [
+        {
+          "name": "Pump",
+          "tagType": "UdtType",
+          "parameters": {
+            "PLC": {
+              "dataType": "String",
+              "value": "PLC_Pumps"
+            },
+            "Index": {
+              "dataType": "Integer",
+              "value": 0
+            }
+          },
+          "tags": [
+            {
+              "name": "Running",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Boolean",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[{PLC}]Pump[{Index}].Running"
+            },
+            {
+              "name": "Speed",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[{PLC}]Pump[{Index}].SpeedPct",
+              "engUnit": "%"
+            },
+            {
+              "name": "Fault",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Boolean",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[{PLC}]Pump[{Index}].Fault",
+              "alarms": [
+                {
+                  "name": "Pump Fault",
+                  "mode": "Equality",
+                  "setpointA": 1,
+                  "priority": "High",
+                  "label": "Pump faulted"
+                }
+              ]
+            },
+            {
+              "name": "RuntimeHours",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float8",
+              "value": 0,
+              "documentation": "Accumulated by the PLC; logged daily by riverbend.pumps.logAllRuntimes"
+            },
+            {
+              "name": "Cmd",
+              "tagType": "Folder",
+              "tags": [
+                {
+                  "name": "Start",
+                  "tagType": "AtomicTag",
+                  "valueSource": "opc",
+                  "dataType": "Boolean",
+                  "opcServer": "Ignition OPC UA Server",
+                  "opcItemPath": "ns=1;s=[{PLC}]Pump[{Index}].CmdStart"
+                },
+                {
+                  "name": "Stop",
+                  "tagType": "AtomicTag",
+                  "valueSource": "opc",
+                  "dataType": "Boolean",
+                  "opcServer": "Ignition OPC UA Server",
+                  "opcItemPath": "ns=1;s=[{PLC}]Pump[{Index}].CmdStop"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Filter",
+          "tagType": "UdtType",
+          "parameters": {
+            "Unit": {
+              "dataType": "Integer",
+              "value": 1
+            }
+          },
+          "tags": [
+            {
+              "name": "Turbidity",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Filters]Filter{Unit}.Turbidity",
+              "engUnit": "NTU",
+              "alarms": [
+                {
+                  "name": "High Turbidity",
+                  "mode": "AboveValue",
+                  "setpointA": 0.3,
+                  "priority": "High",
+                  "label": "Filter effluent turbidity high"
+                }
+              ]
+            },
+            {
+              "name": "HeadLoss",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Filters]Filter{Unit}.HeadLoss",
+              "engUnit": "psi",
+              "alarms": [
+                {
+                  "name": "High Head Loss",
+                  "mode": "AboveValue",
+                  "setpointA": 8,
+                  "priority": "Medium",
+                  "label": "Filter needs backwash"
+                }
+              ]
+            },
+            {
+              "name": "Backwashing",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Boolean",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Filters]Filter{Unit}.BW_Active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Riverbend",
+      "tagType": "Folder",
+      "tags": [
+        {
+          "name": "Intake",
+          "tagType": "Folder",
+          "tags": [
+            {
+              "name": "RawFlow",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Intake]RawWater.Flow",
+              "engUnit": "gpm"
+            },
+            {
+              "name": "RawTurbidity",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Intake]RawWater.Turbidity",
+              "engUnit": "NTU"
+            },
+            {
+              "name": "ScreenDP",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Intake]Screen.DiffPress",
+              "engUnit": "inH2O",
+              "alarms": [
+                {
+                  "name": "Screen Blinding",
+                  "mode": "AboveValue",
+                  "setpointA": 2.5,
+                  "priority": "Medium",
+                  "label": "Intake screen differential pressure high"
+                }
+              ]
+            },
+            {
+              "name": "LowFlowInterlock",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Boolean",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Intake]Interlock.LowFlow",
+              "alarms": [
+                {
+                  "name": "Low Flow Interlock",
+                  "mode": "Equality",
+                  "setpointA": 1,
+                  "priority": "Critical",
+                  "label": "Intake low-flow interlock active"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Filters",
+          "tagType": "Folder",
+          "tags": [
+            {
+              "name": "Filter1",
+              "tagType": "UdtInstance",
+              "typeId": "Filter",
+              "parameters": {
+                "Unit": {
+                  "dataType": "Integer",
+                  "value": 1
+                }
+              },
+              "tags": []
+            },
+            {
+              "name": "Filter2",
+              "tagType": "UdtInstance",
+              "typeId": "Filter",
+              "parameters": {
+                "Unit": {
+                  "dataType": "Integer",
+                  "value": 2
+                }
+              },
+              "tags": []
+            },
+            {
+              "name": "Filter3",
+              "tagType": "UdtInstance",
+              "typeId": "Filter",
+              "parameters": {
+                "Unit": {
+                  "dataType": "Integer",
+                  "value": 3
+                }
+              },
+              "tags": []
+            },
+            {
+              "name": "Filter4",
+              "tagType": "UdtInstance",
+              "typeId": "Filter",
+              "parameters": {
+                "Unit": {
+                  "dataType": "Integer",
+                  "value": 4
+                }
+              },
+              "tags": []
+            }
+          ]
+        },
+        {
+          "name": "Pumps",
+          "tagType": "Folder",
+          "tags": [
+            {
+              "name": "P101",
+              "tagType": "UdtInstance",
+              "typeId": "Pump",
+              "parameters": {
+                "Index": {
+                  "dataType": "Integer",
+                  "value": 0
+                }
+              },
+              "tags": []
+            },
+            {
+              "name": "P102",
+              "tagType": "UdtInstance",
+              "typeId": "Pump",
+              "parameters": {
+                "Index": {
+                  "dataType": "Integer",
+                  "value": 1
+                }
+              },
+              "tags": []
+            },
+            {
+              "name": "P103",
+              "tagType": "UdtInstance",
+              "typeId": "Pump",
+              "parameters": {
+                "Index": {
+                  "dataType": "Integer",
+                  "value": 2
+                }
+              },
+              "tags": []
+            }
+          ]
+        },
+        {
+          "name": "Clearwell",
+          "tagType": "Folder",
+          "tags": [
+            {
+              "name": "Level",
+              "tagType": "AtomicTag",
+              "valueSource": "opc",
+              "dataType": "Float4",
+              "opcServer": "Ignition OPC UA Server",
+              "opcItemPath": "ns=1;s=[PLC_Pumps]Clearwell.Level",
+              "engUnit": "ft",
+              "alarms": [
+                {
+                  "name": "Low Level",
+                  "mode": "BelowValue",
+                  "setpointA": 4,
+                  "priority": "High",
+                  "label": "Clearwell level low"
+                },
+                {
+                  "name": "High Level",
+                  "mode": "AboveValue",
+                  "setpointA": 18,
+                  "priority": "Medium",
+                  "label": "Clearwell level high"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Plant",
+          "tagType": "Folder",
+          "tags": [
+            {
+              "name": "TotalFlow",
+              "tagType": "AtomicTag",
+              "valueSource": "expr",
+              "dataType": "Float4",
+              "engUnit": "gpm",
+              "expression": "{[default]Riverbend/Intake/RawFlow} * 0.98"
+            },
+            {
+              "name": "Mode",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "String",
+              "value": "Auto",
+              "documentation": "Plant operating mode set by operators: Auto, Manual or Maintenance"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

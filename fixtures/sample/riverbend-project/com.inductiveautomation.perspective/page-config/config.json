@@ -1,0 +1,38 @@
+{
+  "pages": {
+    "/": {
+      "viewPath": "Overview",
+      "title": "Overview"
+    },
+    "/intake": {
+      "viewPath": "Intake/IntakeOverview",
+      "title": "Intake"
+    },
+    "/filters": {
+      "viewPath": "Filters/FilterGallery",
+      "title": "Filters"
+    },
+    "/pumps": {
+      "viewPath": "Pumps/PumpStation",
+      "title": "Pump station"
+    },
+    "/alarms": {
+      "viewPath": "Alarms/AlarmSummary",
+      "title": "Alarms"
+    },
+    "/reports": {
+      "viewPath": "Reports/Daily",
+      "title": "Daily report"
+    }
+  },
+  "sharedDocks": {
+    "top": [
+      {
+        "viewPath": "Navigation/Header",
+        "size": 64,
+        "display": "visible",
+        "iconUrl": ""
+      }
+    ]
+  }
+}

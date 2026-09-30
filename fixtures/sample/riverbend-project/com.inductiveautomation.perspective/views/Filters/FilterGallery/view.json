@@ -1,0 +1,42 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "children": [
+      {
+        "type": "ia.display.flex-repeater",
+        "meta": {
+          "name": "Filters"
+        },
+        "props": {
+          "path": "Components/FilterCard",
+          "instances": [
+            {
+              "filter": "Filter1"
+            },
+            {
+              "filter": "Filter2"
+            },
+            {
+              "filter": "Filter3"
+            },
+            {
+              "filter": "Filter4"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

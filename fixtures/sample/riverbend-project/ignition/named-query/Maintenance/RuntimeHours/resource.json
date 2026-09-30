@@ -1,0 +1,29 @@
+{
+  "scope": "G",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "query.sql"
+  ],
+  "attributes": {
+    "useMaxReturnSize": false,
+    "autoBatchEnabled": false,
+    "fallbackValue": "",
+    "maxReturnSize": 100,
+    "cacheUnit": "SEC",
+    "type": "Scalar",
+    "enabled": true,
+    "cacheAmount": 1,
+    "cacheEnabled": false,
+    "database": "RiverbendSQL",
+    "fallbackEnabled": false,
+    "parameters": [
+      {
+        "type": "Parameter",
+        "identifier": "PumpName",
+        "sqlType": 7
+      }
+    ]
+  }
+}

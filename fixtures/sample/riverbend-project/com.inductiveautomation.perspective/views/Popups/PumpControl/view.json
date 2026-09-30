@@ -1,0 +1,105 @@
+{
+  "custom": {},
+  "params": {
+    "pumpPath": ""
+  },
+  "props": {
+    "defaultSize": {
+      "width": 360,
+      "height": 300
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column"
+    },
+    "children": [
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Header"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "'Pump ' + {view.params.pumpPath}"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "Start"
+        },
+        "props": {
+          "text": "Start"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "script",
+              "scope": "G",
+              "config": {
+                "script": "\triverbend.pumps.start(self.view.params.pumpPath)"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "Stop"
+        },
+        "props": {
+          "text": "Stop"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "script",
+              "scope": "G",
+              "config": {
+                "script": "\triverbend.pumps.stop(self.view.params.pumpPath)"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Runtime"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "query",
+              "config": {
+                "queryPath": "Maintenance/RuntimeHours",
+                "parameters": {
+                  "PumpName": "{view.params.pumpPath}"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "propConfig": {
+    "params.pumpPath": {
+      "paramDirection": "input"
+    }
+  }
+}
