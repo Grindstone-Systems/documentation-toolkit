@@ -53,7 +53,7 @@ export function expandUdts(c: Collector, store: TagStore) {
   if (expanded) c.countMany("ignition.udt-member", "UDT member tags (expanded from definitions)", expanded, expanded);
   if (expanded >= MAX_EXPANDED) c.diag("warning", "udt-expansion-capped", `UDT expansion stopped at ${MAX_EXPANDED.toLocaleString()} member tags.`);
   if (missing) {
-    c.diag("warning", "udt-definition-missing", `${missing} UDT instance${missing > 1 ? "s reference definitions" : " references a definition"} that aren't in the input. Include the _types_ folder in the tag export to document their members.`);
+    c.diag("warning", "udt-definition-missing", `${missing} UDT instance${missing > 1 ? "s reference definitions" : " references a definition"} that aren't in the input. For a tag export, include the _types_ folder; in a backup, the definition may have been deleted or live in another provider.`);
   }
 }
 

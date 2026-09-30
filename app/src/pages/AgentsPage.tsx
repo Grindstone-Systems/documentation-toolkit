@@ -77,7 +77,7 @@ export function AgentsPage() {
             </div>
           ))}
           <p className="hint">
-            These setup steps haven't been tested in every client yet. Check your client's MCP documentation if a command differs.
+            Checked with Claude Code and Codex. For other clients, check their MCP documentation for where servers are configured.
           </p>
           <h2 className="block-title">3 · Rebuild</h2>
           <p>

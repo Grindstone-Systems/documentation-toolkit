@@ -340,7 +340,7 @@ function tagsSection(ctx: Ctx): Section | undefined {
     });
   }
   const missingTypes = instances.filter((i) => ix.outgoing(i.id, "instance-of").some((r) => !r.to)).length;
-  if (missingTypes) blocks.push(gap(`${plural(missingTypes, "UDT instance")} reference definitions that aren't in the input, so their members aren't listed. Include the _types_ folder when exporting tags.`));
+  if (missingTypes) blocks.push(gap(`${plural(missingTypes, "UDT instance")} reference definitions that aren't in the input, so their members aren't listed. For a tag export, include the _types_ folder; in a backup, the definition may have been deleted or live in another provider.`));
   blocks.push({ type: "callout", tone: "note", text: "The complete tag list is in Appendix: Tag inventory and in tags.csv." });
   return section(ctx, { id: "tags", title: "Tags and data model", status: "extracted", blocks, refs: [...types.map((t) => t.id), ...instances.map((i) => i.id)] });
 }

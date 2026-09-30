@@ -30,7 +30,7 @@ media:
     type: image
     src: ./media/workspace.jpg
     title: A reference built in the browser
-    alt: The Documentation Toolkit workspace with inputs and counts on the left, a generated engineering reference showing a system map of pages, views and tag folders in the middle, and branding controls on the right.
+    alt: The Documentation Toolkit workspace with the Engineering Reference pack and its section outline on the left, a generated system map of pages, views and tag folders in the middle, and the Customize panel with document details on the right.
     caption: Workspace · The synthetic Riverbend sample project and tag export, processed on the device
     credit: Grindstone Systems
     rights: Provided for display, resizing and caching in the OIC project listing.
@@ -99,9 +99,9 @@ requirements:
   - name: Ignition exports
     kind: software
     cost: optional-paid
-    notes: A project export (8.x), a tag export (JSON) or a gateway backup. 8.3
-      backups include gateway configuration; 8.1 backups document projects
-      only. A sample project is built in.
+    notes: A project export (8.x), a tag export (JSON) or a gateway backup.
+      8.1 and 8.3 backups include gateway configuration (tags, UDTs, alarms,
+      connections and devices). A sample project is built in.
   - name: Node.js 22
     kind: software
     cost: free
@@ -178,11 +178,13 @@ faq:
       be established from configuration. Those sections stay Unresolved until
       the site supplies approved text.
   - question: Which Ignition versions are supported?
-    answer: Project exports from 8.x, tag exports (JSON) and 8.3 gateway backups.
-      8.1 backups document projects; their tags and connections live in an
-      internal database that isn't decoded yet. Vision windows and reports are
-      listed by name. Tested on a synthetic sample and a small number of real
-      8.1 and 8.3 backups.
+    answer: Project exports from 8.x, tag exports (JSON), and 8.1 and 8.3
+      gateway backups including their tags, UDTs, alarms, connections and
+      devices. An 8.1 backup keeps that configuration in an internal database,
+      which the toolkit reads without running it; that reader has been tested
+      on one real 8.1 backup so far. Vision windows and reports are listed by
+      name. Tested on a synthetic sample and a small number of real 8.1 and 8.3
+      backups.
   - question: Is this an Inductive Automation product?
     answer: No. It's an independent open-source utility that reads exported
       files. It doesn't replace the Designer or imply endorsement.

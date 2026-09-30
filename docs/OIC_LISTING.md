@@ -7,7 +7,8 @@ Documentation Toolkit is listed the same way as Visual Toolkit: the profile live
 | Profile | `.oic/project.yaml` (schema `oic/project/v2`) |
 | Long description | `.oic/overview.md` (≤ 20 KB) |
 | Media | `.oic/media/*.jpg`, `logo.png` (≤ 8 images; PNG/JPEG/WebP ≤ 2 MB and ≤ 12 MP each) |
-| Registration | `open-industrial-collective/website`: `content/sources.json` → `documentation-toolkit` (not registered yet) |
+| Registration | `open-industrial-collective/website`: `content/sources.json` → `documentation-toolkit` (repository ID 1396831416, controller 10232151) |
+| Listing | https://openindustrialcollective.org/projects/documentation-toolkit |
 
 ## 1. Change the profile or media here
 
@@ -21,12 +22,16 @@ pnpm oic:check           # validate the profile against the catalog schema and t
 
 Keep claims accurate:
 - Screenshots use the synthetic Riverbend sample. Say so; never use a customer's project.
-- Keep the version support statement (8.x projects, tag JSON, 8.3 backups; 8.1 projects only) in step with `docs/EVIDENCE.md`.
+- Keep the version support statement (8.x projects, tag JSON, 8.1 and 8.3 backups with gateway configuration) in step with `docs/EVIDENCE.md`.
 - State that AI is optional and uses the user's own assistant.
 
 Commit and push to `main`.
 
 ## 2. First publication (once)
+
+Done on 2026-09-30: enrollment in [website#20](https://github.com/open-industrial-collective/website/issues/20), registered and approved in [website#21](https://github.com/open-industrial-collective/website/pull/21), first pinned to `abb3777`. The steps, for reference:
+
+0. Open a **Submit a listing** issue in the website repo with the repository, manifest path, relationship (numeric repository and account IDs), free-access URL, costs and the listing permissions.
 
 1. The repo must be public and the app deployed to Pages (`docs/HOSTING.md`), because the profile links to both.
 2. In the website repo, register the source in `content/sources.json` the way `visual-toolkit` is registered (repo id, `main`, controller).

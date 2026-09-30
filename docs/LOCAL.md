@@ -22,22 +22,28 @@ Inputs can be `.gwbk`, project `.zip`, an unzipped project folder, or tag `.json
 - `write_section` refuses `status: confirmed` and requires `origin: agent`.
 - stdio only; no network port is opened.
 
-## Client setup (unverified)
+## Client setup
 
-These follow each client's documented MCP configuration but haven't been tested end to end yet.
+Tested on 2026-09-30 against a workspace built from the sample (`oic-docs build fixtures/sample/riverbend-project fixtures/sample/riverbend-tags.json --out riverbend-workspace`).
 
-**Claude Code**, from inside the unzipped workspace:
+**Claude Code** (2.1.80), from inside the unzipped workspace:
 
 ```bash
 claude mcp add oic-docs -- node /path/to/documentation-toolkit/dist-cli/oic-docs.mjs mcp --workspace .
 ```
 
-**Codex**, in `~/.codex/config.toml`:
+`claude mcp list` then shows `oic-docs … ✓ Connected`. The server is added to your local (per-folder) config; remove it with `claude mcp remove oic-docs -s local`.
+
+**Codex** (CLI 0.155, and the Codex app, which share `~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.oic-docs]
 command = "node"
 args = ["/path/to/documentation-toolkit/dist-cli/oic-docs.mjs", "mcp", "--workspace", "/path/to/workspace"]
 ```
+
+Interactive sessions ask before each tool call. Non-interactive `codex exec` rejects MCP calls unless you pre-approve them, either for the run (`-c 'mcp_servers.oic-docs.default_tools_approval_mode="approve"'`) or in the block above. In the test run Codex called `check_coverage`, `search_evidence` and `validate`, and `write_section` with `status: confirmed` was refused ("Only a person can mark a section confirmed").
+
+Other MCP clients: run the same command over stdio. Check your client's documentation for where servers are configured.
 
 Without MCP, both assistants still work from the workspace alone: they read `AGENTS.md` (Claude Code via `CLAUDE.md`) and edit the Markdown files directly. The skill in `agent/skills/documentation-toolkit/` carries the same rules for assistants that load skills.

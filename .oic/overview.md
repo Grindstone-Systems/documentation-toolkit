@@ -27,4 +27,4 @@ Processing happens on your device. The app loads only its own files, keeps worki
 
 ## Where it fits
 
-Documentation Toolkit reads exported files. It doesn't connect to a gateway, run project code or replace the Designer. It's in preview: project exports, tag exports and 8.3 backups are supported, and 8.1 backups document projects only. It has been tested on a synthetic sample and a small number of real backups. The code is open source under Apache-2.0.
+Documentation Toolkit reads exported files. It doesn't connect to a gateway, run project code or replace the Designer. It's in preview: project exports, tag exports, and 8.1 and 8.3 gateway backups are supported, including tags, connections and devices from an 8.1 backup's internal database. It has been tested on a synthetic sample and a small number of real backups. The code is open source under Apache-2.0.
