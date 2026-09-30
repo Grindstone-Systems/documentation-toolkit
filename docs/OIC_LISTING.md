@@ -15,10 +15,10 @@ Documentation Toolkit is listed the same way as Visual Toolkit: the profile live
 ```bash
 pnpm oic:media           # regenerate the screenshots and logo (starts Vite, drives your Chrome)
 pnpm oic:media evidence  # or only shots whose name matches
-pnpm oic:check           # validate the profile against the catalog schema and the image limits
+pnpm oic:check           # check the profile with OIC's importer and Charter preflight
 ```
 
-`oic:check` reads the schema from a sibling checkout of the website repo (`../open-industrial-collective/website/src/project-v2.schema.json`); set `OIC_SCHEMA` to use another path.
+`oic:check` runs OIC's own profile check, the importer and Charter preflight a reviewer runs, from a cached clone of the public website repo (or the checkout in `OIC_WEBSITE`). `pnpm oic:check --ref HEAD` checks exactly what OIC would import, and its digest matches the reviewer's `fetch`. CI runs the same check through the `open-industrial-collective/website/profile-check` Action. A clean check is not an approval.
 
 Keep claims accurate:
 - Screenshots use the synthetic Riverbend sample. Say so; never use a customer's project.
