@@ -1,0 +1,229 @@
+schema: oic/project/v2
+id: documentation-toolkit
+name: Documentation Toolkit
+summary: "Experimental: turn an Ignition backup or project export into a searchable engineering reference and editable manual pack, in your browser."
+category: Engineering
+tags:
+  - Experimental
+  - Documentation
+  - Ignition
+  - Perspective
+  - Handover
+  - MCP
+  - AI agents
+  - Open source
+platforms:
+  - Web browser
+  - Node.js (optional)
+publisher:
+  name: Grindstone Systems
+  url: https://github.com/Grindstone-Systems
+description:
+  file: ./overview.md
+branding:
+  logo:
+    on_light: ./media/logo.png
+    on_dark: ./media/logo.png
+    alt: Documentation Toolkit mark, a white page outline with two text lines and a blue node on a charcoal tile
+media:
+  - id: workspace
+    type: image
+    src: ./media/workspace.jpg
+    title: A reference built in the browser
+    alt: The Documentation Toolkit workspace with the Engineering Reference pack and its section outline on the left, a generated system map of pages, views and tag folders in the middle, and the Customize panel with document details on the right.
+    caption: Workspace · The synthetic Riverbend sample project and tag export, processed on the device
+    credit: Grindstone Systems
+    rights: Provided for display, resizing and caching in the OIC project listing.
+  - id: evidence
+    type: image
+    src: ./media/evidence.jpg
+    title: Every fact traced to its source
+    alt: The Evidence tab showing the tag P101/Speed with its source file, configuration fields including an OPC item path expanded from its UDT, the view that uses it and the document section that cites it.
+    caption: Evidence explorer · Configuration, source file, links and where each item appears in the document
+    credit: Grindstone Systems
+    rights: Provided for display, resizing and caching in the OIC project listing.
+  - id: operator-framework
+    type: image
+    src: ./media/operator-framework.jpg
+    title: Frameworks that don't invent procedures
+    alt: The Operator Manual Framework pack showing an Alarm responses section marked Unresolved, listing critical and high alarms with an empty Approved response column.
+    caption: Operator Manual Framework · Alarms come from configuration; responses stay Unresolved until the site supplies them
+    credit: Grindstone Systems
+    rights: Provided for display, resizing and caching in the OIC project listing.
+  - id: coverage
+    type: image
+    src: ./media/coverage.jpg
+    title: Explicit about coverage
+    alt: The Coverage tab in dark mode listing each resource type with found and read counts, a Vision window listed but not read, and one unresolved tag reference.
+    caption: Coverage · Anything found but not read is counted and explained, never silently dropped
+    credit: Grindstone Systems
+    rights: Provided for display, resizing and caching in the OIC project listing.
+  - id: reference
+    type: image
+    src: ./media/reference.jpg
+    title: The exported reference
+    alt: The exported offline HTML reference with a contents sidebar and search box, a tag summary by folder, UDT definitions and an alarm table.
+    caption: Offline HTML export · One self-contained file with search; also exported as Word, PDF and CSV
+    credit: Grindstone Systems
+    rights: Provided for display, resizing and caching in the OIC project listing.
+  - id: agents
+    type: image
+    src: ./media/agents.jpg
+    title: Bring your own AI assistant
+    alt: The AI agent extension page in dark mode with steps to save a workspace, set up the local MCP tools for Claude Code or Codex, and the boundaries the tools enforce.
+    caption: Agent extension · Optional; uses your own Claude Code, Codex or MCP client on your machine
+    credit: Grindstone Systems
+    rights: Provided for display, resizing and caching in the OIC project listing.
+source:
+  availability: open-source
+  repository: https://github.com/Grindstone-Systems/documentation-toolkit
+license:
+  name: Apache License 2.0
+  url: https://github.com/Grindstone-Systems/documentation-toolkit/blob/main/LICENSE
+  spdx_expression: Apache-2.0
+access:
+  edition: Hosted web app
+  cost: free
+  notes: Experimental, in its testing phase. The app is a static site that runs entirely in your browser, with no
+    account, server, upload or time limit. Documents you export are yours. The
+    source is Apache-2.0 and can be self-hosted. The optional local extension
+    (CLI and MCP server) runs on your own machine and uses your own AI
+    assistant, if you choose to use one.
+  account_required: false
+requirements:
+  - name: Modern web browser
+    kind: software
+    cost: free
+    notes: Current Chrome, Edge, Firefox or Safari. Processing and export work
+      offline once the app has loaded.
+  - name: Ignition exports
+    kind: software
+    cost: optional-paid
+    notes: A project export (8.x), a tag export (JSON) or a gateway backup.
+      8.1 and 8.3 backups include gateway configuration (tags, UDTs, alarms,
+      connections and devices). A sample project is built in.
+  - name: Node.js 22
+    kind: software
+    cost: free
+    notes: Only for the optional local extension (oic-docs CLI and MCP server),
+      built from source until it is published.
+    applies_to:
+      - agents
+  - name: AI assistant
+    kind: service
+    cost: optional-paid
+    notes: Optional. Claude Code, Codex or another MCP client, on your own
+      subscription. The basic pack needs no AI.
+    applies_to:
+      - agents
+actions:
+  - id: app
+    type: demo
+    url: https://grindstone-systems.github.io/documentation-toolkit/
+    primary: true
+    label: Open the toolkit
+    description: Open a backup or project export, or explore the sample. Runs in
+      your browser with no account or upload.
+  - id: sample
+    type: demo
+    url: https://grindstone-systems.github.io/documentation-toolkit/#/workspace/sample
+    primary: false
+    label: Explore the sample
+  - id: agents
+    type: docs
+    url: https://github.com/Grindstone-Systems/documentation-toolkit/blob/main/docs/LOCAL.md
+    primary: false
+    label: Set up the agent extension
+resources:
+  - id: source
+    kind: source
+    title: Source code
+    url: https://github.com/Grindstone-Systems/documentation-toolkit
+    access: public
+    description: Apache-2.0 TypeScript engine, adapters, renderers, the browser app and the oic-docs CLI and MCP server.
+  - id: privacy
+    kind: document
+    title: Privacy and security
+    url: https://github.com/Grindstone-Systems/documentation-toolkit/blob/main/docs/PRIVACY.md
+    access: public
+    description: What stays on the device, how untrusted files are handled, and the offline check that runs in CI.
+  - id: workspace-format
+    kind: document
+    title: Workspace format
+    url: https://github.com/Grindstone-Systems/documentation-toolkit/blob/main/docs/WORKSPACE.md
+    access: public
+    description: The portable folder of evidence, Markdown sections and settings that people and agents edit.
+links:
+  homepage: https://grindstone-systems.github.io/documentation-toolkit/
+  docs: https://github.com/Grindstone-Systems/documentation-toolkit#readme
+  issues: https://github.com/Grindstone-Systems/documentation-toolkit/issues
+  changelog: https://github.com/Grindstone-Systems/documentation-toolkit/commits/main
+faq:
+  - question: What does Experimental mean here?
+    answer: The toolkit is in its testing phase. It is tested on a synthetic
+      sample and a small number of real Ignition 8.1 and 8.3 backups, formats
+      and outputs may still change, and generated documents should be checked
+      against the source before anyone relies on them. Reports of what it gets
+      wrong are welcome in the issue tracker.
+  - question: Is my backup uploaded anywhere?
+    answer: No. Files are read in your browser and never leave your device. The
+      app makes no requests beyond its own files, and a CI check fails the build
+      if that changes. Credentials in the backup are never read.
+  - question: Does it need AI?
+    answer: No. The reference, frameworks and every export are generated
+      deterministically. AI is optional, through your own assistant and the
+      local extension, and anything it writes is marked AI draft.
+  - question: Will it write our operating procedures?
+    answer: No. Operating steps, alarm responses and safety information can't
+      be established from configuration. Those sections stay Unresolved until
+      the site supplies approved text.
+  - question: Which Ignition versions are supported?
+    answer: Project exports from 8.x, tag exports (JSON), and 8.1 and 8.3
+      gateway backups including their tags, UDTs, alarms, connections and
+      devices. An 8.1 backup keeps that configuration in an internal database,
+      which the toolkit reads without running it; that reader has been tested
+      on one real 8.1 backup so far. Vision windows and reports are listed by
+      name. Tested on a synthetic sample and a small number of real 8.1 and 8.3
+      backups.
+  - question: Is this an Inductive Automation product?
+    answer: No. It's an independent open-source utility that reads exported
+      files. It doesn't replace the Designer or imply endorsement.
+lifecycle:
+  stage: preview
+  maintenance: active
+visibility: listed
+discovery:
+  primary: development
+  secondary:
+    - operations
+  capabilities:
+    - Engineering reference generation
+    - Operator and maintenance manual frameworks
+    - Tag, alarm and view inventories
+    - Source coverage reporting
+    - Word, HTML, PDF and CSV export
+    - AI agent workspace and MCP tools
+  product_type: application
+  interfaces:
+    - Web browser
+    - CLI
+    - MCP (stdio)
+  works_with:
+    - name: Ignition
+      relationship: integrates
+      version: 8.1, 8.3
+  options:
+    - resource_id: source
+      delivery: web
+      environments:
+        - Web browser
+        - Node.js 22 (CLI)
+      deployment:
+        - hosted
+        - local
+  offline: yes
+  air_gap: unknown
+  commercial_use: yes
+  support:
+    - community
+    - publisher

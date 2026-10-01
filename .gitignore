@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-cli/
+.vite/
+coverage/
+*.tsbuildinfo
+.DS_Store
+out/
+
+# Internal planning documents (kept local, not published)
+docs/sources/
+
+# Never commit real customer backups or exports; fixtures are synthetic only.
+*.gwbk
+# …except the synthetic demo backup (pnpm demo:backup)
+!demo/riverbend-demo.gwbk
+*.idb
+.local/
+
+# Agent worktrees
+.claude/worktrees/

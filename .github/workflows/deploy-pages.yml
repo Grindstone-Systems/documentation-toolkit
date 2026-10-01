@@ -1,0 +1,20 @@
+# Publishes the app to GitHub Pages ($0 for public repositories).
+# Enable once: repository Settings → Pages → Source: "GitHub Actions".
+name: Deploy app
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  pages:
+    uses: Grindstone-Systems/.github/.github/workflows/pages.yml@main
+    with:
+      test: pnpm test
+      build: pnpm build

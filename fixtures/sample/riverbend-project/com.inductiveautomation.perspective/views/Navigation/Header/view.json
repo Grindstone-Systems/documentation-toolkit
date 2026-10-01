@@ -1,0 +1,149 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1920,
+      "height": 64
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "row"
+    },
+    "children": [
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Title"
+        },
+        "props": {
+          "text": "Riverbend WTP"
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "NavOverview"
+        },
+        "props": {
+          "text": "Overview"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "nav",
+              "scope": "C",
+              "config": {
+                "page": "/"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "NavIntake"
+        },
+        "props": {
+          "text": "Intake"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "nav",
+              "scope": "C",
+              "config": {
+                "page": "/intake"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "NavFilters"
+        },
+        "props": {
+          "text": "Filters"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "nav",
+              "scope": "C",
+              "config": {
+                "page": "/filters"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "NavPumps"
+        },
+        "props": {
+          "text": "Pumps"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "nav",
+              "scope": "C",
+              "config": {
+                "page": "/pumps"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.input.button",
+        "meta": {
+          "name": "NavAlarms"
+        },
+        "props": {
+          "text": "Alarms"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "type": "nav",
+              "scope": "C",
+              "config": {
+                "page": "/alarms"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Mode"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "direct",
+                "tagPath": "[default]Riverbend/Plant/Mode",
+                "fallbackDelay": 2.5
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

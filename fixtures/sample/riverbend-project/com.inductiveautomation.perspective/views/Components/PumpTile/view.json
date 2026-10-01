@@ -1,0 +1,105 @@
+{
+  "custom": {},
+  "params": {
+    "pumpPath": "",
+    "pumpName": ""
+  },
+  "props": {
+    "defaultSize": {
+      "width": 220,
+      "height": 140
+    }
+  },
+  "root": {
+    "type": "ia.container.coord",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "events": {
+      "dom": {
+        "onClick": {
+          "type": "popup",
+          "scope": "C",
+          "config": {
+            "id": "pump",
+            "type": "open",
+            "viewPath": "Popups/PumpControl",
+            "params": {
+              "pumpPath": "{view.params.pumpPath}"
+            }
+          }
+        }
+      }
+    },
+    "children": [
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Name"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "path": "view.params.pumpName"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.led-display",
+        "meta": {
+          "name": "Running"
+        },
+        "props": {},
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "indirect",
+                "tagPath": "{1}/Running",
+                "references": {
+                  "1": "{view.params.pumpPath}"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.progress",
+        "meta": {
+          "name": "Speed"
+        },
+        "props": {},
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "indirect",
+                "tagPath": "{1}/Speed",
+                "references": {
+                  "1": "{view.params.pumpPath}"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "propConfig": {
+    "params.pumpPath": {
+      "paramDirection": "input"
+    },
+    "params.pumpName": {
+      "paramDirection": "input"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    uses: Grindstone-Systems/.github/.github/workflows/check.yml@main
+    with:
+      run: |
+        pnpm typecheck
+        pnpm test
+        pnpm build
+        pnpm build:cli
+  privacy:
+    # Plan acceptance: nothing leaves the origin, and processing and exports work offline.
+    uses: Grindstone-Systems/.github/.github/workflows/check.yml@main
+    with:
+      chrome: true
+      run: |
+        pnpm build
+        pnpm privacy:check
+  oic-profile:
+    # The listing, checked with OIC's own importer and Charter preflight.
+    uses: Grindstone-Systems/.github/.github/workflows/oic-profile.yml@main

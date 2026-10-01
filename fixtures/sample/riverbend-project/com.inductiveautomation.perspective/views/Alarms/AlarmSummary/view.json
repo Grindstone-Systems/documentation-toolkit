@@ -1,0 +1,35 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "children": [
+      {
+        "type": "ia.display.alarmstatustable",
+        "meta": {
+          "name": "Active"
+        },
+        "props": {
+          "filters": {
+            "active": {
+              "priorities": {
+                "high": true,
+                "critical": true
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

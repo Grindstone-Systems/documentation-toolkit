@@ -1,0 +1,113 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1024,
+      "height": 768
+    }
+  },
+  "root": {
+    "type": "ia.container.coord",
+    "meta": {
+      "name": "root"
+    },
+    "props": {},
+    "children": [
+      {
+        "type": "ia.display.view",
+        "meta": {
+          "name": "Pump1"
+        },
+        "props": {
+          "path": "Components/PumpTile",
+          "params": {
+            "pumpPath": "[default]Riverbend/Pumps/P101",
+            "pumpName": "P101"
+          }
+        }
+      },
+      {
+        "type": "ia.display.view",
+        "meta": {
+          "name": "Pump2"
+        },
+        "props": {
+          "path": "Components/PumpTile",
+          "params": {
+            "pumpPath": "[default]Riverbend/Pumps/P102",
+            "pumpName": "P102"
+          }
+        }
+      },
+      {
+        "type": "ia.display.view",
+        "meta": {
+          "name": "Pump3"
+        },
+        "props": {
+          "path": "Components/PumpTile",
+          "params": {
+            "pumpPath": "[default]Riverbend/Pumps/P103",
+            "pumpName": "P103"
+          }
+        }
+      },
+      {
+        "type": "ia.chart.timeseries",
+        "meta": {
+          "name": "SpeedTrend"
+        },
+        "props": {},
+        "propConfig": {
+          "props.series[0].data": {
+            "binding": {
+              "type": "tag-history",
+              "config": {
+                "tags": [
+                  {
+                    "alias": "P101",
+                    "path": "[default]Riverbend/Pumps/P101/Speed"
+                  },
+                  {
+                    "alias": "P102",
+                    "path": "[default]Riverbend/Pumps/P102/Speed"
+                  },
+                  {
+                    "alias": "P103",
+                    "path": "[default]Riverbend/Pumps/P103/Speed"
+                  }
+                ],
+                "returnFormat": "Wide"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Header"
+        },
+        "props": {},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "tag",
+              "config": {
+                "mode": "direct",
+                "tagPath": "[default]Riverbend/Plant/Mode"
+              },
+              "transforms": [
+                {
+                  "type": "script",
+                  "code": "\treturn 'Mode: ' + value"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}
