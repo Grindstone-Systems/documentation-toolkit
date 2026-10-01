@@ -26,6 +26,8 @@ The app picks up any `app/src/art/<name>.webp` automatically (see `app/src/ui/Ar
 
 ## Assets
 
+In the app so far: `hero`, `step-open`, `step-review` and `step-handover`.
+
 | File | Where it appears | Shape | Source size | Web width |
 | --- | --- | --- | --- | --- |
 | `hero.webp` | Home hero | 2:1 | 2400×1200 | 1600 |
