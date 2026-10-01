@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { CONFIG } from "../config.ts";
 import type { ToolPage } from "../shell/tools.ts";
 import { PageHeader, StatusPill } from "../ui/controls.tsx";
+import { Art, type ArtName } from "../ui/Art.tsx";
 import { Icon } from "../ui/icons.tsx";
 
 /** Landing page for a tool that is planned or in preview: what it will do and where it stands. */
 export function ToolStatusPage({ tool, group, action }: { tool: ToolPage; group?: string; action?: ReactNode }) {
   return (
     <div className="page">
-      <PageHeader eyebrow={group} title={tool.label} actions={<StatusPill status={tool.status} />}>
+      <PageHeader eyebrow={group} title={tool.label} actions={<StatusPill status={tool.status} />} art={<Art name={tool.path as ArtName} />}>
         {tool.summary}
       </PageHeader>
       <div className="status-grid">

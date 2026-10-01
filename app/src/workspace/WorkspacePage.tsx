@@ -4,6 +4,7 @@ import { slug } from "../../../lib/render/escape.ts";
 import { renderHtml } from "../../../lib/render/html.ts";
 import { unresolved } from "../../../lib/resolve.ts";
 import { dataUris } from "../../../lib/workspace.ts";
+import { Art } from "../ui/Art.tsx";
 import { Popover, Segmented } from "../ui/controls.tsx";
 import { Icon } from "../ui/icons.tsx";
 import { Coverage } from "./Coverage.tsx";
@@ -167,6 +168,7 @@ export function WorkspacePage({
     return (
       <div className="ws-empty" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
         <div className="ws-empty-inner">
+          <Art name="workspace-empty" className="ws-empty-art" eager />
           <h1>Open a backup or project</h1>
           <p className="lede">Your files are read in this tab and never uploaded. Nothing is kept after you close it.</p>
           <OpenPanel ws={ws} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CONFIG } from "../config.ts";
 import { PageHeader, Segmented } from "../ui/controls.tsx";
+import { Art } from "../ui/Art.tsx";
 import { Icon } from "../ui/icons.tsx";
 
 type Client = "claude" | "codex" | "other";
@@ -43,7 +44,7 @@ export function AgentsPage() {
   const [client, setClient] = useState<Client>("claude");
   return (
     <div className="page">
-      <PageHeader title="AI agent extension">
+      <PageHeader title="AI agent extension" art={<Art name="agents" />}>
         Hand the pack to the assistant you already use. It explains scripts and screens, adapts wording for operators, and asks you for what configuration can't tell it.
         It uses your own subscription; the toolkit adds no model or account.
       </PageHeader>

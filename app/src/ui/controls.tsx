@@ -25,7 +25,7 @@ export function Segmented<T extends string>({
 }
 
 /** Title block shared by the content pages. */
-export function PageHeader({ eyebrow, title, children, actions }: { eyebrow?: string; title: string; children?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({ eyebrow, title, children, actions, art }: { eyebrow?: string; title: string; children?: ReactNode; actions?: ReactNode; art?: ReactNode }) {
   return (
     <header className="page-head">
       <div>
@@ -34,6 +34,7 @@ export function PageHeader({ eyebrow, title, children, actions }: { eyebrow?: st
         {children && <div className="lede">{children}</div>}
       </div>
       {actions && <div className="page-actions">{actions}</div>}
+      {art && <div className="page-art">{art}</div>}
     </header>
   );
 }
