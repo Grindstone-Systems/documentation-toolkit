@@ -1,5 +1,5 @@
 import type { ToolkitConfig } from "../config.ts";
-import { REDACTED } from "../document/packs.ts";
+import { REDACTED, sortedDisagreements } from "../document/packs.ts";
 import type { Entity, Evidence, FieldValue } from "../types.ts";
 
 /**
@@ -65,6 +65,44 @@ export function inventoryCsvs(ev: Evidence, cfg: ToolkitConfig): CsvFile[] {
     out.push({
       path: "named-queries.csv",
       content: toCsv(["Project", "Query", "Type", "Database", "Parameters", "Tables", "SQL"], qs.map((q) => [q.scope, q.path, q.fields.type, q.fields.database, q.fields.parameters, q.fields.tables, value(cfg, q, "sql")])),
+    });
+  }
+  // Supplied evidence (oic.docs.supplement/v0): only when a host supplied it.
+  const cite = (s: { input: string; path: string; at?: string }) => [s.input, s.path, s.at].filter(Boolean).join(", ");
+  const readers = (id: string) => [...new Set(ev.relationships.filter((r) => r.type === "reads-plc-tag" && r.to === id).map((r) => r.from.replace(/^tag:/, "")))].sort();
+  const plc = of("plc-tag");
+  if (plc.length) {
+    out.push({
+      path: "plc-tags.csv",
+      content: toCsv(
+        ["Controller", "Program", "PLC tag", "Data type", "Tag type", "Alias for", "Description", "Read by (Ignition tags)", "Source"],
+        plc.map((p) => [value(cfg, p, "controller"), value(cfg, p, "program"), p.name, value(cfg, p, "dataType"), value(cfg, p, "tagType"), value(cfg, p, "aliasFor"), value(cfg, p, "description"), readers(p.id), cite(p.source)]),
+      ),
+    });
+  }
+  const io = of("io-point");
+  if (io.length) {
+    const wired = (id: string) => [...new Set(ev.relationships.filter((r) => r.type === "wired-to" && r.from === id).map((r) => (r.to ? r.to.replace(/^plc-tag:/, "") : r.target)))];
+    out.push({
+      path: "io-points.csv",
+      content: toCsv(
+        ["Address", "Type", "Description", "Equipment", "PLC tag", "Source"],
+        io.map((p) => [value(cfg, p, "address") ?? p.name, value(cfg, p, "type"), value(cfg, p, "description"), value(cfg, p, "equipment"), wired(p.id).length ? wired(p.id) : value(cfg, p, "tag"), cite(p.source)]),
+      ),
+    });
+  }
+  const ds = of("disagreement");
+  if (ds.length) {
+    const sides = (id: string) => ev.relationships.filter((r) => r.type === "concerns" && r.from === id);
+    out.push({
+      path: "disagreements.csv",
+      content: toCsv(
+        ["Kind", "Subject", "Disagreement", "Expected", "Address", "One side", "One side source", "Other side", "Other side source"],
+        sortedDisagreements(ds).map((d) => {
+          const [a, ...b] = sides(d.id);
+          return [value(cfg, d, "kind"), value(cfg, d, "subject"), value(cfg, d, "text"), value(cfg, d, "expected"), value(cfg, d, "address"), a?.target, a ? cite(a.source) : undefined, b.map((r) => r.target), b.map((r) => cite(r.source))];
+        }),
+      ),
     });
   }
   out.push({ path: "coverage.csv", content: toCsv(["Resource type", "Found", "Read", "Note"], ev.coverage.map((c) => [c.label, c.found, c.read, c.note])) });

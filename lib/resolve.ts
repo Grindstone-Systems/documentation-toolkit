@@ -163,13 +163,22 @@ export function finalize(ev: Evidence): Evidence {
 }
 
 /**
+ * Supplied relationships whose target needn't be an entity. A disagreement
+ * often concerns something that is missing on one side (an I/O point with no
+ * PLC tag), and a runtime fact may describe a resource the inputs don't
+ * contain; `target` still names it. A `reads-plc-tag` or `wired-to` without
+ * a PLC tag is a genuine gap and is reported like any other reference.
+ */
+const NAMED_ONLY = new Set<Relationship["type"]>(["contains", "concerns", "about"]);
+
+/**
  * Unresolved, non-dynamic references: the gaps worth reporting. Connections
  * are defined on the gateway, so without a backup they're a known limit of
  * the input (see `missingConnections`), not a gap per tag.
  */
 export function unresolved(ev: Evidence) {
   const gateway = ev.entities.some((e) => e.kind === "gateway");
-  return ev.relationships.filter((r) => !r.to && !r.dynamic && r.type !== "contains" && (gateway || r.type !== "uses-connection"));
+  return ev.relationships.filter((r) => !r.to && !r.dynamic && !NAMED_ONLY.has(r.type) && (gateway || r.type !== "uses-connection"));
 }
 
 /** Connection names referenced by tags and queries when no gateway backup was supplied. */

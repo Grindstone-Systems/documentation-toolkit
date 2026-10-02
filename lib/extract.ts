@@ -4,6 +4,7 @@ import { Collector } from "./adapters/collector.ts";
 import { collectGateway, shortVersion, wantGatewayFile } from "./adapters/ignition-gateway.ts";
 import { collectProject, wantProjectFile } from "./adapters/ignition-project.ts";
 import { collectTagNodes, newTagStore, tagRoots, type TagStore } from "./adapters/ignition-tags.ts";
+import { collectSupplement, isSupplement } from "./adapters/supplement.ts";
 import { expandUdts, finalize, resolve } from "./resolve.ts";
 import { emptyEvidence, type Evidence, type InputFormat, type InputRecord } from "./types.ts";
 
@@ -16,6 +17,7 @@ export const ADAPTERS = {
   "ignition-gateway-backup": { name: "ignition.gateway", version: "0.2.0", label: "Ignition gateway backup" },
   "ignition-project-export": { name: "ignition.project", version: "0.1.0", label: "Ignition project export" },
   "ignition-tag-json": { name: "ignition.tags", version: "0.1.2", label: "Ignition tag export (JSON)" },
+  "oic-docs-supplement": { name: "oic.supplement", version: "0.1.0", label: "Supplied evidence" },
   unknown: { name: "none", version: "0", label: "Unsupported file" },
 } as const satisfies Record<InputFormat, { name: string; version: string; label: string }>;
 
@@ -124,7 +126,7 @@ async function readFile(c: Collector, input: InputFile, store: TagStore, limits:
     return { ...base, format: d.format, adapter: ADAPTERS[d.format].name, adapterVersion: ADAPTERS[d.format].version, ...(platformVersion ? { platformVersion } : {}) };
   }
 
-  // Plain JSON: a tag export.
+  // Plain JSON: evidence a host supplies, or a tag export.
   if (input.bytes.length > limits.maxEntryBytes) throw new InputError("too-large", "This file is larger than the per-file limit.");
   const text = strFromU8(input.bytes).replace(/^﻿/, "");
   let json: unknown;
@@ -132,6 +134,12 @@ async function readFile(c: Collector, input: InputFile, store: TagStore, limits:
     json = JSON.parse(text);
   } catch {
     throw new InputError("unknown-file", "This file isn't a ZIP archive or JSON. Supported: Ignition project exports, 8.x gateway backups and tag exports (JSON).");
+  }
+  // Checked first: a supplement's schema field is decisive, and it must never be read as tags.
+  if (isSupplement(json)) {
+    say({ stage: "reading", input: input.name, message: "Reading supplied evidence" });
+    collectSupplement(c, json as Record<string, unknown>, input.name);
+    return { ...base, ...record("oic-docs-supplement") };
   }
   const roots = tagRoots(json);
   if (!roots) throw new InputError("unknown-json", "This JSON file doesn't look like an Ignition tag export.");
@@ -160,11 +168,23 @@ function readTree(c: Collector, input: InputTree, store: TagStore, say: (p: Prog
     collectProject(c, input.tree, d.prefix ?? "", projectNameFor(input.name, d.prefix ?? ""));
     return { ...base, format: d.format, adapter: ADAPTERS[d.format].name, adapterVersion: ADAPTERS[d.format].version };
   }
-  // A tree holding tag JSON files.
+  // A tree holding tag JSON files, supplements, or both.
+  let tags = 0;
+  let supplements = 0;
   for (const e of input.tree.entries.filter((x) => x.path.endsWith(".json"))) {
     const json = input.tree.json(e.path);
+    if (isSupplement(json)) {
+      collectSupplement(c, json as Record<string, unknown>, e.path);
+      supplements++;
+      continue;
+    }
     const roots = tagRoots(json);
-    if (roots) collectTagFile(c, json, roots, e.path, store);
+    if (roots) {
+      collectTagFile(c, json, roots, e.path, store);
+      tags++;
+    }
   }
-  return { ...base, format: "ignition-tag-json", adapter: ADAPTERS["ignition-tag-json"].name, adapterVersion: ADAPTERS["ignition-tag-json"].version };
+  return { ...base, ...record(supplements && !tags ? "oic-docs-supplement" : "ignition-tag-json") };
 }
+
+const record = (format: "ignition-tag-json" | "oic-docs-supplement") => ({ format, adapter: ADAPTERS[format].name, adapterVersion: ADAPTERS[format].version });

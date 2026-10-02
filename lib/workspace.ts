@@ -146,6 +146,11 @@ const KINDS = new Set<EntityKind>([
   "device",
   "user-source",
   "resource",
+  "controller",
+  "plc-tag",
+  "io-point",
+  "disagreement",
+  "runtime-fact",
 ]);
 
 export class WorkspaceError extends Error {}

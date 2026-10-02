@@ -16,13 +16,18 @@ const KIND_LABEL: Partial<Record<EntityKind, string>> = {
   "opc-connection": "OPC",
   "database-connection": "Databases",
   device: "Devices",
+  controller: "Controllers",
+  "plc-tag": "PLC tags",
+  "io-point": "I/O points",
+  disagreement: "Disagreements",
+  "runtime-fact": "Runtime facts",
   resource: "Other",
 };
 
 const LIMIT = 300;
 
 /** Group headings in the "All" list. */
-const KIND_GROUP: Partial<Record<EntityKind, string>> = { ...KIND_LABEL, "named-query": "Named queries", "opc-connection": "OPC connections", "database-connection": "Database connections", resource: "Other resources" };
+const KIND_GROUP: Partial<Record<EntityKind, string>> = { ...KIND_LABEL, "named-query": "Named queries", "opc-connection": "OPC connections", "database-connection": "Database connections", disagreement: "PLC and HMI disagreements", resource: "Other resources" };
 
 /** Field keys as people read them: opcItemPath → OPC item path. */
 const ACRONYMS: Record<string, string> = { opc: "OPC", udt: "UDT", sql: "SQL", url: "URL", id: "ID", ip: "IP", jdbc: "JDBC", ua: "UA", eng: "Eng." };

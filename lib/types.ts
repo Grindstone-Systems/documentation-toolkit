@@ -6,7 +6,7 @@
  */
 
 export const EVIDENCE_SCHEMA = "oic.docs.evidence/v0";
-export const ENGINE_VERSION = "0.1.0";
+export const ENGINE_VERSION = "0.2.0";
 
 export type EntityKind =
   | "gateway"
@@ -27,7 +27,13 @@ export type EntityKind =
   | "database-connection"
   | "device"
   | "user-source"
-  | "resource";
+  | "resource"
+  // Supplied by a host (oic.docs.supplement/v0), never read from Ignition files:
+  | "controller"
+  | "plc-tag"
+  | "io-point"
+  | "disagreement"
+  | "runtime-fact";
 
 /** Scalar evidence values. Lists stay short; long text is truncated at extraction. */
 export type FieldValue = string | number | boolean | null | string[];
@@ -72,7 +78,12 @@ export type RelationshipType =
   | "instance-of" // udt-instance → udt-type
   | "has-alarm" // tag → alarm
   | "uses-connection" // tag/query → connection
-  | "contains"; // project → resource
+  | "contains" // project → resource
+  // Supplied by a host (oic.docs.supplement/v0):
+  | "reads-plc-tag" // tag → plc-tag (the OPC item path reads it)
+  | "wired-to" // io-point → plc-tag
+  | "concerns" // disagreement → either side, cited by its source
+  | "about"; // runtime-fact → the entity it describes
 
 export interface Relationship {
   from: string;
@@ -117,7 +128,7 @@ export interface InputRecord {
   platformVersion?: string;
 }
 
-export type InputFormat = "ignition-gateway-backup" | "ignition-project-export" | "ignition-tag-json" | "unknown";
+export type InputFormat = "ignition-gateway-backup" | "ignition-project-export" | "ignition-tag-json" | "oic-docs-supplement" | "unknown";
 
 export interface Evidence {
   schema: typeof EVIDENCE_SCHEMA;

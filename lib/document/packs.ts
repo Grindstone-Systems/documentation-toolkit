@@ -2,7 +2,8 @@ import { fingerprint } from "../archive.ts";
 import type { ToolkitConfig } from "../config.ts";
 import { ADAPTERS } from "../extract.ts";
 import { missingConnections, unresolved } from "../resolve.ts";
-import type { Entity, EntityKind, Evidence, FieldValue, Relationship } from "../types.ts";
+import { SUPPLIED_RELATIONSHIPS } from "../adapters/supplement.ts";
+import type { Entity, EntityKind, Evidence, FieldValue, Relationship, SourceRef } from "../types.ts";
 import { DOCUMENT_SCHEMA, PACKS, type Block, type DocumentModel, type PackId, type Section, type SystemMap } from "./model.ts";
 
 /**
@@ -149,6 +150,9 @@ function overview(ctx: Ctx): Section {
       type: "paragraph",
       text: `This reference describes ${projects.length ? `the ${projects.map((p) => code(p.name)).join(", ")} project${projects.length > 1 ? "s" : ""}` : "the supplied configuration"}${gw ? ` on gateway ${code(gw.name)}` : ""}. It was generated from exported configuration files, so it shows how the system is configured, not how it is operated or how it is behaving now.`,
     },
+    ...(ix.ev.inputs.some((i) => i.format === "oic-docs-supplement")
+      ? [{ type: "paragraph", text: "It also includes evidence supplied by a host from documents the toolkit doesn't read itself, such as a PLC program, an I/O list or runtime history. Each of those facts cites the document it came from." } as Block]
+      : []),
     { type: "facts", items: facts },
     { type: "table", caption: "Source files", columns: ["File", "Read as", "Version", "SHA-256"], rows: inputs },
   ];
@@ -164,7 +168,9 @@ function systemMap(ctx: Ctx): Section | undefined {
 
   // Views that pages route to come first, then the most referenced.
   const routed = new Set(pages.flatMap((p) => ix.outgoing(p.id, "routes-to").map((r) => r.to).filter(Boolean) as string[]));
-  const viewScore = (v: Entity) => (routed.has(v.id) ? 1000 : 0) + ix.incoming(v.id).length * 10 + ix.outgoing(v.id).length;
+  // Supplied facts about a view (a runtime fact, a disagreement) aren't configuration links.
+  const supplied = new Set<string>(SUPPLIED_RELATIONSHIPS);
+  const viewScore = (v: Entity) => (routed.has(v.id) ? 1000 : 0) + ix.incoming(v.id).filter((r) => !supplied.has(r.type)).length * 10 + ix.outgoing(v.id).length;
   const topViews = [...views].sort((a, b) => viewScore(b) - viewScore(a) || a.id.localeCompare(b.id)).slice(0, MAX);
   const topPages = pages.filter((p) => ix.outgoing(p.id, "routes-to").some((r) => r.to && topViews.some((v) => v.id === r.to))).slice(0, MAX);
 
@@ -733,18 +739,209 @@ function mgRecovery(ctx: Ctx): Section {
   return section(ctx, { id: "mg-recovery", title: "Backup and recovery", status: "unresolved", blocks, refs: gw ? [gw.id] : [] });
 }
 
+/* ------------------------- supplied evidence ------------------------- */
+// Sections drawn from a host's supplement (oic.docs.supplement/v0). Each
+// returns undefined without supplied evidence, so Ignition-only packs are
+// unchanged. They state what the cited documents and history show; never a
+// procedure, a limit or advice.
+
+/** One line, as table cells and facts need for the Markdown round trip. */
+const one = (s: string) => s.replace(/\s+/g, " ").trim();
+const cite = (s: SourceRef) => one([s.input, s.path, s.at].filter(Boolean).join(", ")) || "—";
+const plcName = (e: Entity) => e.id.slice("plc-tag:".length);
+
+/** How a referenced entity reads in a table, or the reference as written when it isn't in the input. */
+function subject(ix: Index, id: string | undefined, target: string): string {
+  const e = id ? ix.byId.get(id) : undefined;
+  if (!e) return code(one(target));
+  if (e.kind === "tag" || e.kind === "udt-instance" || e.kind === "tag-folder") return code(`[${e.scope}]${e.path}`);
+  if (e.kind === "alarm") return `${one(e.name)} on ${code(String(e.fields.tag))}`;
+  if (e.kind === "plc-tag") return code(plcName(e));
+  return code(one(e.scope && e.kind !== "project" ? `${e.scope}/${e.path ?? e.name}` : (e.path ?? e.name)));
+}
+
+const someOf = (xs: string[], n = 3) => (xs.length ? xs.slice(0, n).join(", ") + (xs.length > n ? ` +${xs.length - n}` : "") : "—");
+const readersOf = (ix: Index, p: Entity) => uniq(ix.incoming(p.id, "reads-plc-tag").map((r) => subject(ix, r.from, r.from.replace(/^tag:/, "")))).sort();
+const wiredTo = (ctx: Ctx, io: Entity) => {
+  const rels = ctx.ix.outgoing(io.id, "wired-to");
+  if (!rels.length) return io.fields.tag ? `${code(one(val(ctx, io, "tag")))} (listed, not linked)` : "—";
+  return uniq(rels.map((r) => (r.to && ctx.ix.byId.has(r.to) ? subject(ctx.ix, r.to, r.target) : `${code(one(r.target))} (not in the PLC program)`))).join(", ");
+};
+const cell = (ctx: Ctx, e: Entity, k: string) => one(val(ctx, e, k));
+
+function controllersSection(ctx: Ctx): Section | undefined {
+  const { ix } = ctx;
+  const ctrls = ix.kind("controller");
+  const plc = ix.kind("plc-tag");
+  const io = ix.kind("io-point");
+  if (!ctrls.length && !plc.length && !io.length) return undefined;
+  const blocks: Block[] = [{ type: "paragraph", text: "Controllers, PLC tags and I/O points from the PLC programs and I/O lists supplied with the configuration. Each row cites the document it came from." }];
+  if (ctrls.length) {
+    blocks.push({ type: "heading", text: "Controllers" });
+    blocks.push({
+      type: "table",
+      columns: ["Controller", "Processor", "Software revision", "PLC tags", "Source"],
+      rows: ctrls.slice(0, MAIN_ROWS).map((c) => [code(one(c.name)), cell(ctx, c, "processorType"), cell(ctx, c, "softwareRevision"), cell(ctx, c, "tags"), cite(c.source)]),
+    });
+  }
+  if (plc.length) {
+    const read = plc.filter((p) => ix.incoming(p.id, "reads-plc-tag").length);
+    blocks.push({ type: "heading", text: "PLC tags read by the HMI" });
+    blocks.push({ type: "paragraph", text: `${plural(plc.length, "PLC tag")} in the supplied programs; ${read.length.toLocaleString()} ${agree(read.length, "is", "are")} read by Ignition tags.` });
+    if (read.length) {
+      blocks.push({
+        type: "table",
+        columns: ["PLC tag", "Data type", "Description", "Read by"],
+        rows: read.slice(0, MAIN_ROWS).map((p) => [code(plcName(p)), cell(ctx, p, "dataType"), cell(ctx, p, "description"), someOf(readersOf(ix, p))]),
+      });
+    }
+  }
+  if (io.length) {
+    blocks.push({ type: "heading", text: "I/O points" });
+    blocks.push({
+      type: "table",
+      columns: ["Address", "Type", "Description", "Equipment", "PLC tag"],
+      rows: io.slice(0, MAIN_ROWS).map((p) => [code(cell(ctx, p, "address") === "—" ? one(p.name) : cell(ctx, p, "address")), cell(ctx, p, "type"), cell(ctx, p, "description"), cell(ctx, p, "equipment"), wiredTo(ctx, p)]),
+    });
+  }
+  if (plc.length || io.length) blocks.push({ type: "callout", tone: "note", text: "Every PLC tag and I/O point is listed in Appendix: PLC tags and I/O, plc-tags.csv and io-points.csv." });
+  return section(ctx, { id: "controllers", title: "Controllers and I/O", status: "extracted", blocks, refs: [...ctrls, ...plc, ...io].map((e) => e.id) });
+}
+
+const DISAGREEMENT_KINDS: [string, string][] = [
+  ["renamed", "Renamed"],
+  ["io-without-plc", "I/O point with no PLC tag"],
+  ["ignition-without-plc", "Ignition tag with no PLC tag"],
+  ["alarm-missing", "Alarm missing"],
+];
+const kindOf = (d: Entity) => one(String(d.fields.kind ?? d.id.split(":")[1] ?? "other"));
+const kindLabel = (k: string) => DISAGREEMENT_KINDS.find(([id]) => id === k)?.[1] ?? (k.charAt(0).toUpperCase() + k.slice(1)).replace(/-/g, " ");
+const kindRank = (k: string) => {
+  const i = DISAGREEMENT_KINDS.findIndex(([id]) => id === k);
+  return i < 0 ? DISAGREEMENT_KINDS.length : i;
+};
+export const sortedDisagreements = (ds: Entity[]) => [...ds].sort((a, b) => kindRank(kindOf(a)) - kindRank(kindOf(b)) || kindOf(a).localeCompare(kindOf(b)) || a.id.localeCompare(b.id));
+
+function disagreementsSection(ctx: Ctx): Section | undefined {
+  const { ix } = ctx;
+  const ds = sortedDisagreements(ix.kind("disagreement"));
+  if (!ds.length) return undefined;
+  const counts = new Map<string, number>();
+  for (const d of ds) counts.set(kindOf(d), (counts.get(kindOf(d)) ?? 0) + 1);
+  const side = (r: Relationship) => `${subject(ix, r.to, r.target)} — ${cite(r.source)}`;
+  const rows = ds.slice(0, MAIN_ROWS).map((d) => {
+    const sides = ix.outgoing(d.id, "concerns");
+    return [kindLabel(kindOf(d)), cell(ctx, d, "text"), sides[0] ? side(sides[0]) : "—", sides.length > 1 ? sides.slice(1).map(side).join("; ") : "—"];
+  });
+  const targets = ds.flatMap((d) => ix.outgoing(d.id, "concerns").map((r) => r.to).filter((t): t is string => !!t && ix.byId.has(t)));
+  return section(ctx, {
+    id: "disagreements",
+    title: "PLC and HMI disagreements",
+    status: "extracted",
+    blocks: [
+      { type: "paragraph", text: "Places where the PLC program, the I/O list and the Ignition configuration don't agree, as found by the host that compared them. Each is cited on both sides." },
+      { type: "facts", items: [...counts].map(([k, n]) => [kindLabel(k), plural(n, "disagreement")]) },
+      { type: "table", columns: ["Kind", "Disagreement", "One side", "Other side"], rows },
+      ...(ds.length > MAIN_ROWS ? [{ type: "callout", tone: "note", text: `Showing ${MAIN_ROWS} of ${ds.length.toLocaleString()}. All of them are in disagreements.csv.` } as Block] : []),
+      { type: "callout", tone: "note", text: "These come from comparing documents. This section records each difference and where it was found; it doesn't say which side is right." },
+    ],
+    refs: [...ds.map((d) => d.id), ...targets],
+  });
+}
+
+function runtimeSection(ctx: Ctx): Section | undefined {
+  const { ix } = ctx;
+  const facts = ix.kind("runtime-fact");
+  if (!facts.length) return undefined;
+  const of = (m: string) => facts.filter((f) => f.fields.metric === m);
+  const about = (f: Entity) => {
+    const r = ix.outgoing(f.id, "about")[0];
+    return r ? subject(ix, r.to, r.target) : code(one(f.name));
+  };
+  const window = (f: Entity) => `${cell(ctx, f, "windowFrom")} to ${cell(ctx, f, "windowTo")}`;
+  const num = (v: FieldValue | undefined) => (typeof v === "number" ? v : Number(v) || 0);
+  const capped = (n: number): Block[] => (n > MAIN_ROWS ? [{ type: "callout", tone: "note", text: `Showing ${MAIN_ROWS} of ${n.toLocaleString()}. Every fact is in the workspace evidence.` }] : []);
+  const notMeasured = (what: string): Block => ({ type: "callout", tone: "note", text: `${what} weren't measured: the supplied evidence has no figures for them.` });
+  const blocks: Block[] = [{ type: "paragraph", text: "Facts measured from the running system's history by the host that supplied them, each over the window shown. They record what happened in that window; they aren't limits, setpoints or instructions." }];
+
+  blocks.push({ type: "heading", text: "Alarm activations" });
+  const acts = of("alarm-activations").sort((a, b) => num(b.fields.activations) - num(a.fields.activations) || a.id.localeCompare(b.id));
+  if (acts.length) {
+    blocks.push({
+      type: "table",
+      columns: ["Alarm", "Activations", "Per day", "Window", "Journal complete"],
+      rows: acts.slice(0, MAIN_ROWS).map((f) => [about(f), cell(ctx, f, "activations"), cell(ctx, f, "perDay"), window(f), f.fields.complete === true ? "Yes" : f.fields.complete === false ? "No" : "—"]),
+    });
+    blocks.push(...capped(acts.length));
+    if (acts.some((f) => f.fields.complete === false)) blocks.push({ type: "callout", tone: "note", text: "Where the journal isn't complete it doesn't cover the whole window, so that count may be lower than the true number." });
+  } else blocks.push(notMeasured("Alarm activations"));
+
+  blocks.push({ type: "heading", text: "Normal ranges" });
+  const ranges = of("normal-range");
+  if (ranges.length) {
+    blocks.push({
+      type: "table",
+      columns: ["Tag", "Min", "P05", "Median", "P95", "Max", "Unit", "Samples", "Window"],
+      rows: ranges.slice(0, MAIN_ROWS).map((f) => [about(f), ...["min", "p05", "median", "p95", "max", "unit", "samples"].map((k) => cell(ctx, f, k)), window(f)]),
+    });
+    blocks.push(...capped(ranges.length));
+  } else blocks.push(notMeasured("Normal ranges"));
+
+  blocks.push({ type: "heading", text: "Last change" });
+  const changes = of("last-change").sort((a, b) => String(b.fields.at ?? "").localeCompare(String(a.fields.at ?? "")) || a.id.localeCompare(b.id));
+  if (changes.length) {
+    blocks.push({ type: "table", columns: ["Resource", "When", "Who", "What"], rows: changes.slice(0, MAIN_ROWS).map((f) => [about(f), cell(ctx, f, "at"), cell(ctx, f, "by"), cell(ctx, f, "action")]) });
+    blocks.push(...capped(changes.length));
+  } else blocks.push(notMeasured("Last changes"));
+
+  const known = new Set(["alarm-activations", "normal-range", "last-change"]);
+  const other = facts.filter((f) => !known.has(String(f.fields.metric)));
+  if (other.length) blocks.push({ type: "callout", tone: "note", text: `${plural(other.length, "fact")} of other kinds (${uniq(other.map((f) => one(String(f.fields.metric ?? "unnamed")))).slice(0, 5).join(", ")}) ${agree(other.length, "is", "are")} in the evidence but not tabulated here.` });
+  const targets = facts.flatMap((f) => ix.outgoing(f.id, "about").map((r) => r.to).filter((t): t is string => !!t && ix.byId.has(t)));
+  return section(ctx, { id: "runtime", title: "Runtime facts", status: "extracted", blocks, refs: [...facts.map((f) => f.id), ...targets] });
+}
+
+function appendixIo(ctx: Ctx): Section | undefined {
+  const { ix } = ctx;
+  const plc = ix.kind("plc-tag");
+  const io = ix.kind("io-point");
+  if (!plc.length && !io.length) return undefined;
+  const more = (n: number, what: string, csv: string): Block[] => (n > APPENDIX_ROWS ? [{ type: "callout", tone: "note", text: `Showing ${APPENDIX_ROWS.toLocaleString()} of ${n.toLocaleString()} ${what}. ${csv} has all of them.` }] : []);
+  const blocks: Block[] = [];
+  if (plc.length) {
+    blocks.push({ type: "heading", text: "PLC tags" });
+    blocks.push({
+      type: "table",
+      columns: ["PLC tag", "Controller", "Program", "Data type", "Tag type", "Alias for", "Description", "Read by"],
+      rows: plc.slice(0, APPENDIX_ROWS).map((p) => [code(plcName(p)), ...["controller", "program", "dataType", "tagType", "aliasFor", "description"].map((k) => cell(ctx, p, k)), someOf(readersOf(ix, p))]),
+    });
+    blocks.push(...more(plc.length, "PLC tags", "plc-tags.csv"));
+  }
+  if (io.length) {
+    blocks.push({ type: "heading", text: "I/O points" });
+    blocks.push({
+      type: "table",
+      columns: ["Address", "Type", "Description", "Equipment", "PLC tag", "Source"],
+      rows: io.slice(0, APPENDIX_ROWS).map((p) => [code(cell(ctx, p, "address") === "—" ? one(p.name) : cell(ctx, p, "address")), cell(ctx, p, "type"), cell(ctx, p, "description"), cell(ctx, p, "equipment"), wiredTo(ctx, p), cite(p.source)]),
+    });
+    blocks.push(...more(io.length, "I/O points", "io-points.csv"));
+  }
+  return section(ctx, { id: "appendix-io", title: "Appendix: PLC tags and I/O", status: "extracted", appendix: true, blocks });
+}
+
 /* ------------------------------ packs ------------------------------ */
 
 type Builder = (ctx: Ctx) => Section | undefined;
 
-const REFERENCE: Builder[] = [about, overview, systemMap, projectsSection, navigation, screenshotsSection, viewsSection, tagsSection, alarmsSection, connections, queries, scripts, dependencies];
-const APPENDICES: Builder[] = [appendixTags, appendixAlarms, appendixViews, appendixQueries, appendixScripts, appendixGateway];
+const REFERENCE: Builder[] = [about, overview, systemMap, projectsSection, navigation, screenshotsSection, viewsSection, tagsSection, alarmsSection, runtimeSection, connections, controllersSection, queries, scripts, dependencies, disagreementsSection];
+const APPENDICES: Builder[] = [appendixTags, appendixIo, appendixAlarms, appendixViews, appendixQueries, appendixScripts, appendixGateway];
 const OPERATOR: Builder[] = [
   opIntro,
   about,
   opScreens,
   screenshotsSection,
   alarmsSection,
+  runtimeSection,
   opAlarmResponse,
   (c) => procedures(c, "op-procedures", "Operating procedures", ["Start-up", "Normal operation and routine checks", "Shutdown", "Abnormal and emergency situations", "Handover between shifts"]),
   (c) => procedures(c, "op-safety", "Safety information", ["Hazards and required PPE", "Interlocks and permissives operators should know", "Emergency stops and who to call"]),
@@ -753,8 +950,11 @@ const MAINTENANCE: Builder[] = [
   (c) => section(c, { id: "mg-intro", title: "Using this maintenance guide", status: "extracted", blocks: [{ type: "paragraph", text: "Equipment, connections, alarms and scripts come from the configuration. Troubleshooting steps and recovery procedures must be supplied by the site and are marked Unresolved until then." }] }),
   about,
   mgEquipment,
+  controllersSection,
   connections,
   alarmsSection,
+  runtimeSection,
+  disagreementsSection,
   mgTroubleshooting,
   scripts,
   mgRecovery,
@@ -763,7 +963,7 @@ const MAINTENANCE: Builder[] = [
 const PACK_BUILDERS: Record<PackId, Builder[]> = {
   "engineering-reference": [...REFERENCE, coverageSection, ...APPENDICES],
   "operator-manual": [...OPERATOR, coverageSection, appendixAlarms],
-  "maintenance-guide": [...MAINTENANCE, coverageSection, appendixTags, appendixAlarms, appendixScripts],
+  "maintenance-guide": [...MAINTENANCE, coverageSection, appendixTags, appendixIo, appendixAlarms, appendixScripts],
   "complete-handoff": [...REFERENCE, ...OPERATOR, ...MAINTENANCE, coverageSection, ...APPENDICES],
 };
 
